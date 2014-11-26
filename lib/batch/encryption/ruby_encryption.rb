@@ -53,11 +53,12 @@ class Batch
             cipher = OpenSSL::Cipher.new(CIPHER_ALGORITHM)
             cipher.encrypt
             cipher.key = key
+
             iv = cipher.random_iv
             cipher_bytes = cipher.update(clear_text) + cipher.final
 
             # Combine IV and cipher bytes, and base-64 encode
-            base64_encode([iv, cipher_bytes])
+            base64_encode([iv + cipher_bytes])
         end
         module_function :encrypt
 
@@ -79,10 +80,11 @@ class Batch
             cipher.key = key
 
             # Base-64 decode, and unpack IV and cipher from cipher_text
-            cipher_bytes = base64_decode(cipher_text)
+            iv_cipher = base64_decode(cipher_text)
             iv_len = KEY_DERIVED_LENGTH / 8
-            cipher.iv = cipher_bytes[0...iv_len]
-            cipher.update(cipher_bytes[iv_len..-1]) + cipher.final
+            cipher.iv = iv_cipher[0...iv_len]
+            cipher_bytes = iv_cipher[iv_len..-1]
+            cipher.update(cipher_bytes) + cipher.final
         end
         module_function :decrypt
 
