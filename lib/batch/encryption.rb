@@ -1,4 +1,4 @@
-if Ruby.platform =~ /java/
+if RUBY_PLATFORM == 'java'
     # JRuby OpenSSL support does not include the PKCS5 module, so we use the
     # built-in Java crypto classes instead
     require_relative 'encryption/java_encryption'
