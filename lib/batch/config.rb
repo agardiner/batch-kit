@@ -304,6 +304,22 @@ class Batch
         end
 
 
+        # Override respond_to? to indicate which methods we will accept.
+        def respond_to?(name)
+            if name =~ /^(.+)\?$/
+                has_key?($1)
+            elsif has_key?(name)
+                true
+            elsif has_key?(name.to_s.gsub('_', ''))
+                true
+            elsif name =~ /^(.+)=$/
+                true
+            else
+                super
+            end
+        end
+
+
         # Expand any ${<variable>} or %{<variable>} placeholders in +str+ from
         # this Config object or the system environment variables.
         # This Config object is assumed to contain string or symbol keys matching
