@@ -123,4 +123,53 @@ class TestJob < Test::Unit::TestCase
         assert(task_runs.size > 0, "Expected task_runs.size > 0, got #{task_runs.size}")
     end
 
+    class JobD
+        include Batch::ActsAsJob
+
+        def task1(a, b = nil)
+        end
+
+        def task2(a, b = nil, *rest)
+        end
+
+        def task3(a, b = nil, *rest)
+            yield :foo
+        end
+
+        def task4(a, b = nil, *rest, &blk)
+            blk.call :foo
+        end
+
+        job do
+        end
+
+        task :task1
+        task :task2
+        task :task3
+        task :task4
+    end
+
+
+    def test_arity_handling
+        job_d = JobD.new
+        job_d.execute
+
+        assert_raise(ArgumentError) { job_d.task1 }
+        assert_nothing_raised{ job_d.task1(1) }
+        assert_nothing_raised{ job_d.task1(1, 'a') }
+        assert_raise(ArgumentError) { job_d.task1(1, 'a', :b) }
+
+        assert_raise(ArgumentError) { job_d.task2 }
+        assert_nothing_raised{ job_d.task2(1) }
+        assert_nothing_raised{ job_d.task2(1, 'a') }
+        assert_nothing_raised{ job_d.task2(1, 'a', 3) }
+        assert_nothing_raised{ job_d.task2(1, 'a', 3, 4) }
+
+        assert_raise(LocalJumpError) { job_d.task3(1) }
+        assert_nothing_raised{ job_d.task3(1) {} }
+
+        assert_raise(NoMethodError) { job_d.task4(1) }
+        assert_nothing_raised{ job_d.task4(1) {} }
+    end
+
 end

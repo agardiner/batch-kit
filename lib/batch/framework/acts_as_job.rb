@@ -39,7 +39,7 @@ class Batch
                 if  job_method || job_opts || body
                     unless job_method.is_a?(Symbol)
                         job_opts = job_method
-                        job_method = job_opts.fetch(:method, :execute)
+                        job_method = job_opts && job_opts[:method] || :execute
                     end
 
                     # Define job method if a body block was supplied
