@@ -11,6 +11,29 @@ class Batch
         # across all runs.
         extend Forwardable
 
+        class << self
+
+            # @return [Fanout] A Fanout object used to maintain and notify
+            #   subscribers to lifecycle events.
+            def fanout
+                @fanout ||= Fanout.new
+            end
+
+
+            # Subscribe to life-cycle events on this runnable class.
+            def subscribe(event, &callback)
+                fanout.subscribe(event, &callback)
+            end
+
+
+            # Add delegates for each specified property in +props+.
+            def add_delegated_properties(*props)
+                def_delegators :@definition, *props
+            end
+
+        end
+
+
         # The definition object for this runnable
         attr_reader :definition
         # The instance qualifier for this runnable, if it has an instance
@@ -35,17 +58,13 @@ class Batch
         attr_accessor :exception
 
 
-        # Add delegates for each specified property in +props+.
-        def self.add_delegated_properties(*props)
-            def_delegators :@definition, *props
-        end
-
 
         # Sets the state of the runnable to :initialized.
         def initialize(definition, instance)
             @definition = definition
             @instance = instance
             @status = :initialized
+            publish('initialized', self)
         end
 
 
@@ -62,22 +81,40 @@ class Batch
         end
 
 
-        # Called before the process executes; if false is returned, execution
-        # will be cancelled.
-        def before_execute
-            @exit_code = 0
-            @exception = nil
-            #Batch.publish('before_execute.task', self)
-            #run = @job_run.job_object.respond_to?(:before_task) ?
-            #    @job_run.job_object.before_task(self) : true
-            #@status = :skipped unless run
-            #run
+        # A pre-execute pointcut for execution of a process. Return value
+        # determines whether execution should proceed.
+        #
+        # @param process_obj [Object] Object that is executing the batch
+        #   process.
+        # @param args [*Object] Any arguments passed to the method that is
+        #   executing the process.
+        # @return [Boolean] True if the process should proceed, or false if it
+        #   should be skipped.
+        def pre_execute(process_obj, *args)
+            if self.class.fanout.has_subscribers?('pre-execute')
+                run = publish('pre-execute', self, process_obj, *args)
+            else
+                run = true
+            end
+            unless run
+                @status = :skipped unless run
+                publish('skipped', self, process_obj, *args)
+            end
+            run
         end
 
 
-        def around_execute
+        # Called as the process is executing.
+        #
+        # @param process_obj [Object] Object that is executing the batch
+        #   process.
+        # @param args [*Object] Any arguments passed to the method that is
+        #   executing the process.
+        # @yield at the point when the process should execute.
+        def around_execute(process_obj, *args)
             @start_time = Time.now
             @status = :executing
+            publish('execute', self, process_obj, *args)
             begin
                 yield
             ensure
@@ -86,24 +123,65 @@ class Batch
         end
 
 
-        # Called after the process executes; if +success+ is true, process is
-        # considered a success. If processing fails, an exception may be supplied
-        # indicating the reason for failure.
-        def after_execute(success, ex = nil)
-            if success
-                @status = :completed
-                @exit_code = 0 unless @exit_code
-                #@job_run.job_object.task_success(self) if @job_run.job_object.respond_to?(:task_success)
-                #Batch.publish('on_success.task', self)
-            else
-                @status = :failed
-                @exit_code = 1 unless @exit_code
-                @exception = ex
-                #@job_run.job_object.task_failure(self) if @job_run.job_object.respond_to?(:task_failure)
-                #Batch.publish('on_failure.task', self)
-            end
-            #@job_run.job_object.after_task(self, success) if @job_run.job_object.respond_to?(:after_task)
-            #Batch.publish('after_execute.task', self, success)
+        # Called after the process executes and completes successfully.
+        #
+        # @param process_obj [Object] Object that is executing the batch
+        #   process.
+        # @param result [Object] If +success+ is true, the return value of the
+        #   process. If +success+ is false, the exception that caused it to fail.
+        def success(process_obj, result)
+            @status = :completed
+            @exit_code = 0 unless @exit_code
+            publish('success', self, process_obj, result)
+        end
+
+
+        # Called after the process executes and fails.
+        #
+        # @param process_obj [Object] Object that is executing the batch
+        #   process.
+        # @param success [Boolean] True if the process completed without
+        #   throwing an exception.
+        # @param result_or_exception [Object|Exception] If +success+ is true,
+        #   the return value of the process. If +success+ is false, the
+        #   exception that caused it to fail.
+        def failure(process_obj, exception)
+            @status = :failed
+            @exit_code = 1 unless @exit_code
+            @exception = exception
+            publish('failure', self, process_obj, exception)
+        end
+
+
+        # Called if a batch process is aborted.
+        #
+        # @param process_obj [Object] Object that is executing the batch
+        #   process.
+        def abort(process_obj)
+            @status = :aborted
+            publish('abort', self, process_obj)
+        end
+
+
+        # Called after the process executes.
+        #
+        # @param process_obj [Object] Object that is executing the batch
+        #   process.
+        # @param ok [Boolean] True if the process completed without throwing
+        #   an exception.
+        def post_execute(process_obj, success)
+            publish('post-execute', self, process_obj, success)
+        end
+
+
+        private
+
+        # Publish a runnable life-cycle event to any listeners.
+        #
+        # @param event [String] The name of the event.
+        # @param args [*Object] Any payload arguments to accompany the event.
+        def publish(event, *args)
+            self.class.fanout.publish(event, *args)
         end
 
     end

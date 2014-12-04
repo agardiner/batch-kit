@@ -1,20 +1,37 @@
 class Batch
 
     # Captures details of a definable batch process, e.g. a Task or Job.
+    #
+    # @abstract
     class Definable
 
         class << self
 
             # Register additional properties to be recorded on this definable.
+            #
+            # @param props [Array<Symbol>] The names of properties to be added
+            #   to the definition. Used by sub-classes to add to the available
+            #   properties. This provides a mechanism by which associated
+            #   Run objects can obtain a list of process properties that they
+            #   can delegate.
             def add_properties(*props)
                 attr_accessor *props
                 properties.concat(props)
             end
 
-            # @return the names of properties available on this definition.
+
+            # @return [Array<Symbol>] the names of properties available on this
+            #   definition.
             def properties
                 @properties ||= []
             end
+
+
+            # Access the class-level list of subscribers.
+            def fanout
+                @fanout ||= Fanout.new
+            end
+
 
             # When this class is inherited, we need to copy the common property
             # names into the sub-class, since each sub-class needs the common
@@ -58,6 +75,7 @@ class Batch
         # Create a new instance of this definition.
         def initialize
             @runs = []
+            self.class.fanout.publish('initialized', self)
         end
 
 
@@ -101,49 +119,48 @@ class Batch
             mthd = tgt_class.instance_method(mthd_name)
             tgt_class.class_eval do
                 define_method mthd_name do |*args, &block|
-                    if defn.pre_execute(self, *args)
+                    run = defn.create_run(self, *args)
+                    if run.pre_execute(self, *args)
                         ok = true
                         result = nil
-                        run = defn.create_run(self, *args)
                         begin
-                            defn.around_execute(run) do
+                            run.around_execute(self, *args) do
                                 result = mthd.bind(self).call(*args, &block)
                             end
+                            run.success(self, result)
                             result
                         rescue Exception => ex
                             ok = false
-                            run.exception = result = ex
+                            run.failure(self, ex)
+                            raise
+                        rescue Interrupt
+                            ok = false
+                            run.abort(self)
                             raise
                         ensure
-                            defn.post_execute(ok, result)
+                            run.post_execute(self, ok)
                         end
                     end
                 end
             end
+            self.class.fanout.publish('installed', self, tgt_class, mthd_name)
         end
 
 
+        # Creates an associated Runnable object for this definition. This method
+        # must be overridden in sub-classes.
+        #
+        # @param process_obj [Object] The process object instance on which the
+        #   process method will be invoked.
+        # @param args [Array<Object>] The arguments to be passed to the process
+        #   method.
         def create_run(process_obj, *args)
             raise "Not implemented in #{self.class.name}"
         end
 
 
-        def pre_execute(process_obj, *args)
-            true
-        end
-
-
-        def around_execute(run)
-            #Batch.lock(job_run, lock_name, lock_timeout, wait_timeout) if lock_name
-            #begin
-            run.around_execute{ yield }
-            #ensure
-            #    Batch.unlock(job_run, lock_name) if lock_name
-            #end
-        end
-
-
-        def post_execute(ok, result)
+        trap 'INT' do
+            Thread.main.raise Interrupt
         end
 
     end

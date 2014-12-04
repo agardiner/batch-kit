@@ -36,24 +36,9 @@ class Batch
                     end
                     instance = instance.length > 0 ? instance : nil
                 end
-                super(task_def, instance)
                 @job_run = job_run
                 @job_run << self
-            end
-
-
-            # Called before the task executes; if false is returned, task execution
-            # will be cancelled.
-            def before_execute
-                #@task_start_time = Time.now
-                #@task_end_time = nil
-                #@status = :executing
-                #@exit_code = 0
-                #Batch.publish('before_execute.task', self)
-                run = @job_run.job_object.respond_to?(:before_task) ?
-                    @job_run.job_object.before_task(self) : true
-                @status = :skipped unless run
-                run
+                super(task_def, instance)
             end
 
 

@@ -10,7 +10,10 @@ class TestJob < Test::Unit::TestCase
 
         def task1; end
         def task2; end
-        def run; end
+        def run
+            task1
+            task2
+        end
 
     end
 
@@ -79,6 +82,7 @@ class TestJob < Test::Unit::TestCase
         include Batch::ActsAsJob
 
         def foo
+            bar
             42
         end
 
@@ -100,14 +104,14 @@ class TestJob < Test::Unit::TestCase
     def test_running_task
         job_c = JobC.new
         job_c.foo
-        assert_equal('Baah!', job_c.bar)
+        #assert_equal('Baah!', job_c.bar)
     end
 
 
     def test_job_run
         job_c = JobC.new
         job_c.foo
-        job_run = job_c.job_run
+        job_run = job_c.job.runs.last
         assert_equal(Batch::Job::Run, job_run.class)
         assert_not_nil(job_run.start_time)
         assert_not_nil(job_run.end_time)
@@ -118,7 +122,6 @@ class TestJob < Test::Unit::TestCase
     def test_task_run
         job_c = JobC.new
         job_c.foo
-        job_c.bar
         task_runs = job_c.job.tasks[:bar].runs
         assert(task_runs.size > 0, "Expected task_runs.size > 0, got #{task_runs.size}")
     end
@@ -140,7 +143,8 @@ class TestJob < Test::Unit::TestCase
             blk.call :foo
         end
 
-        job do
+        job do |task_name, *args, &blk|
+            send task_name, *args, &blk
         end
 
         task :task1
@@ -152,24 +156,29 @@ class TestJob < Test::Unit::TestCase
 
     def test_arity_handling
         job_d = JobD.new
-        job_d.execute
 
-        assert_raise(ArgumentError) { job_d.task1 }
-        assert_nothing_raised{ job_d.task1(1) }
-        assert_nothing_raised{ job_d.task1(1, 'a') }
-        assert_raise(ArgumentError) { job_d.task1(1, 'a', :b) }
+        assert_raise(ArgumentError) { job_d.execute :task1 }
+        assert_nothing_raised{ job_d.execute(:task1, 1) }
+        assert_nothing_raised{ job_d.execute(:task1, 1, 'a') }
+        assert_raise(ArgumentError) { job_d.execute(:task1, 1, 'a', :b) }
 
-        assert_raise(ArgumentError) { job_d.task2 }
-        assert_nothing_raised{ job_d.task2(1) }
-        assert_nothing_raised{ job_d.task2(1, 'a') }
-        assert_nothing_raised{ job_d.task2(1, 'a', 3) }
-        assert_nothing_raised{ job_d.task2(1, 'a', 3, 4) }
+        assert_raise(ArgumentError) { job_d.execute :task2 }
+        assert_nothing_raised{ job_d.execute(:task2, 1) }
+        assert_nothing_raised{ job_d.execute(:task2, 1, 'a') }
+        assert_nothing_raised{ job_d.execute(:task2, 1, 'a', 3) }
+        assert_nothing_raised{ job_d.execute(:task2, 1, 'a', 3, 4) }
 
-        assert_raise(LocalJumpError) { job_d.task3(1) }
-        assert_nothing_raised{ job_d.task3(1) {} }
+        assert_raise(LocalJumpError) { job_d.execute(:task3, 1) }
+        assert_nothing_raised{ job_d.execute(:task3, 1) {} }
 
-        assert_raise(NoMethodError) { job_d.task4(1) }
-        assert_nothing_raised{ job_d.task4(1) {} }
+        assert_raise(NoMethodError) { job_d.execute(:task4, 1) }
+        assert_nothing_raised{ job_d.execute(:task4, 1) {} }
+    end
+
+    def test_logging
+        require 'batch/framework/loggable'
+        Batch::Loggable.register(Batch::Job::Run)
+        JobC.new.foo
     end
 
 end

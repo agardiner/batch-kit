@@ -89,7 +89,6 @@ class Batch
             # @param args [Array<Object>] The arguments passed to the job method.
             def create_run(job_obj, *args)
                 job_run = Job::Run.new(self, job_obj, *args)
-                job_obj.instance_variable_set :@__job_run__, job_run
                 @runs << job_run
                 job_run
             end

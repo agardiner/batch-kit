@@ -8,8 +8,6 @@ class Batch
 
         class Run < Runnable
 
-            # @!attribute :job_object [Object] The object instance that executed the
-            #   job logic.
             # @!attribute :run_by [String] The name of the user that ran this job
             #   instance.
             # @!attribute :cmd_line [String] The command-line used to invoke the job.
@@ -37,7 +35,7 @@ class Batch
             #   occurred during job execution (and which was not caught by a task
             #   run).
             PROPERTIES = [
-                :job_object, :run_by, :pid, :job_run_id,
+                :run_by, :pid, :job_run_id,
                 :cmd_line, :job_args,
                 :request_id, :requestors, :task_runs
             ]
@@ -70,32 +68,76 @@ class Batch
                     end
                     instance = instance.length > 0 ? instance : nil
                 end
-                super(job_def, instance)
-
-                @job_object = job_object
                 @run_by = Etc.getlogin
                 @cmd_line = "#{$0} #{ARGV.map{ |s| s =~ / |^\*$/ ? %Q{"#{s}"} : s }.join(' ')}".strip
                 @pid = ::Process.pid
                 @task_runs = []
+                super(job_def, instance)
             end
 
 
             def <<(task_run)
                 unless task_run.is_a?(Task::Run)
-                    raise ArgumentError, "Only Task::Run objects can be added to this Job::Run" 
+                    raise ArgumentError, "Only Task::Run objects can be added to this Job::Run"
                 end
                 @task_runs << task_run
             end
 
 
-            # Call-back to be called just prior to beginning execution of a job.
-            def before_execute
-                super
-                trap 'INT' do
-                    #job_object.on_abort(self) if job_object.respond_to?(:on_abort)
-                    #Batch.publish('on_abort.job', self)
-                    Thread.main.raise Interrupt
+            # Called as the process is executing.
+            #
+            # @param process_obj [Object] Object that is executing the batch
+            #   process.
+            # @param args [*Object] Any arguments passed to the method that is
+            #   executing the process.
+            # @yield at the point when the process should execute.
+            def around_execute(process_obj, *args)
+                if process_obj.job_run
+                    raise "There is already a job run active (#{process_obj.job_run}) for #{process_obj}"
                 end
+                process_obj.instance_variable_set(:@__job_run__, self)
+                begin
+                    super
+                ensure
+                    process_obj.instance_variable_set(:@__job_run__, nil)
+                end
+            end
+
+
+            # Called after the process executes and completes successfully.
+            #
+            # @param process_obj [Object] Object that is executing the batch
+            #   process.
+            # @param result [Object] If +success+ is true, the return value of the
+            #   process. If +success+ is false, the exception that caused it to fail.
+            def success(process_obj, result)
+                super
+                process_obj.on_success if process_obj.respond_to?(:on_success)
+            end
+
+
+            # Called after the process executes and fails.
+            #
+            # @param process_obj [Object] Object that is executing the batch
+            #   process.
+            # @param success [Boolean] True if the process completed without
+            #   throwing an exception.
+            # @param result_or_exception [Object|Exception] If +success+ is true,
+            #   the return value of the process. If +success+ is false, the
+            #   exception that caused it to fail.
+            def failure(process_obj, exception)
+                super
+                process_obj.on_failure(exception) if process_obj.respond_to?(:on_failure)
+            end
+
+
+            # Called if a batch process is aborted.
+            #
+            # @param process_obj [Object] Object that is executing the batch
+            #   process.
+            def abort(process_obj)
+                super
+                process_obj.on_abort if process_obj.respond_to?(:on_abort)
             end
 
 

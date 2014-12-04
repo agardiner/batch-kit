@@ -64,7 +64,7 @@ class Batch
             end
 
 
-            # Create a new Taskk::Run object for a run of this task.
+            # Create a new Task::Run object for a run of this task.
             #
             # @param job_obj [Object] The job object that is running this task.
             # @param args [Array<Object>] The arguments passed to the task method.
