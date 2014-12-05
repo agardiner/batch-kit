@@ -23,12 +23,12 @@ class TestJob < Test::Unit::TestCase
         assert_equal(Batch::Job::Definition, job_def.class)
         assert_equal(JobA, job_def.job_class)
         assert_equal(File.realpath(__FILE__), job_def.file)
-        assert_equal(Socket.gethostname, job_def.server)
+        assert_equal(Socket.gethostname, job_def.computer)
     end
 
     def test_including_class_gets_delegated_properties
         assert_equal(File.realpath(__FILE__), JobA.job.file)
-        assert_equal(Socket.gethostname, JobA.job.server)
+        assert_equal(Socket.gethostname, JobA.job.computer)
         assert_equal('TestJob::JobA', JobA.job.name)
         JobA.job.name = 'Job A'
         assert_equal('Job A', JobA.job.name)
@@ -37,7 +37,7 @@ class TestJob < Test::Unit::TestCase
     def test_including_class_instances_gets_delegated_properties
         job_a = JobA.new
         assert_equal(File.realpath(__FILE__), job_a.job.file)
-        assert_equal(Socket.gethostname, job_a.job.server)
+        assert_equal(Socket.gethostname, job_a.job.computer)
         assert_equal('Job A', job_a.job.name)
     end
 
@@ -178,6 +178,7 @@ class TestJob < Test::Unit::TestCase
     def test_logging
         require 'batch/framework/loggable'
         Batch::Loggable.register(Batch::Job::Run)
+        Batch::Loggable.register(Batch::Task::Run)
         JobC.new.foo
     end
 

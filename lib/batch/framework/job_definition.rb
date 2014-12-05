@@ -12,7 +12,7 @@ class Batch
             # @!attribute :job_class [Class] The class that defines the job.
             # @!attribute :job_method [Symbol] The method that is run to execute
             #   the job.
-            # @!attribute :job_server [String] The name of the machine on which the
+            # @!attribute :computer [String] The name of the machine on which the
             #   job was instantiated.
             # @!attribute :job_file [String] The name of the file containing the job
             #   code.
@@ -29,7 +29,7 @@ class Batch
             # @!attribute :job_version [Fixnum] A version number for the job.
             add_properties(
                 # Properties from job/task declarations
-                :job_class, :method_name, :server, :file, :do_not_track, :tasks,
+                :job_class, :method_name, :computer, :file, :do_not_track, :tasks,
                 # Properties provided by persistence layer
                 :job_id, :job_version
             )
@@ -43,7 +43,7 @@ class Batch
                 @job_class = job_class
                 @file = job_file
                 @name = job_name || job_class.name
-                @server = Socket.gethostname
+                @computer = Socket.gethostname
                 @tasks = {}
             end
 
