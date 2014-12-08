@@ -1,5 +1,5 @@
 require 'sequel'
-require 'logger'
+require 'batch/logging'
 
 
 class Batch
@@ -18,7 +18,7 @@ class Batch
 
             def connect(*args)
                 @conn = Sequel.connect(*args)
-                @conn.loggers << Logger.new($stdout)
+                @conn.loggers << Batch::LogManager.logger('batch.schema')
             end
 
 
