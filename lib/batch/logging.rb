@@ -19,10 +19,12 @@ class Batch
             :java_util_logging => lambda{
                 require 'java'
 
-                Java::JavaUtilLogging::Logger.alias_method :error, :fatal
-                Java::JavaUtilLogging::Logger.alias_method :detail, :fine
-                Java::JavaUtilLogging::Logger.alias_method :trace, :finer
-                Java::JavaUtilLogging::Logger.alias_method :debug, :finest
+                Java::JavaUtilLogging::Logger.class_eval do
+                    alias_method :error, :severe
+                    alias_method :detail, :fine
+                    alias_method :trace, :finer
+                    alias_method :debug, :finest
+                end
             },
             :log4r => lambda{
                 require 'log4r'
@@ -33,72 +35,78 @@ class Batch
             :logger => lambda{
                 require 'logger'
 
-                Logger.alias_method :warning, :warn
-                Logger.alias_method :config, :info
-                Logger.alias_method :detail, :info
-                Logger.alias_method :trace, :debug
+                Logger.class_eval do
+                    alias_method :warning, :warn
+                    alias_method :config, :info
+                    alias_method :detail, :info
+                    alias_method :trace, :debug
+                end
             }
         }
 
-
-        # Used for setting the log framework to use, and retrieving a logger
-        # from the current framework.
-        class LogManager
-
-            class << self
-
-                attr_reader :log_framework
+    end
 
 
-                def log_framework=(framework)
-                    unless FRAMEWORKS.include?(framework)
-                        raise ArgumentError, "Unknown logging framework #{framework.inspect}"
-                    end
-                    @log_framework = framework
-                    if init_proc = FRAMEWORK_INIT[@log_framework]
-                        init_proc.call
-                    end
-                    @loggers = {}
+    # Used for setting the log framework to use, and retrieving a logger
+    # from the current framework.
+    class LogManager
+
+        class << self
+
+            attr_reader :log_framework
+
+
+            def log_framework=(framework)
+                unless Logging::FRAMEWORKS.include?(framework)
+                    raise ArgumentError, "Unknown logging framework #{framework.inspect}"
                 end
-
-
-                # @return [Logger] a logger object that can be used for generating
-                #   log messages. The type of logger returned will depend on the
-                #   log framework being used, but the logger is guaranteed to
-                #   implement the following log methods:
-                #   - error
-                #   - warning
-                #   - info
-                #   - config
-                #   - detail
-                #   - trace
-                #   - debug
-                def logger(name)
-                    logger = @loggers[name]
-                    unless logger
-                        logger = case @log_framework
-                        when :stdout
-                            StdOutLogger.new(name)
-                        when :java_util_logging
-                            Java::JavaUtilLogging::Logger.getLogger(name)
-                        when :log4r
-                            Log4r::Logger[name] || Log4r::Logger.new(name)
-                        when :logger
-                            Logger.new(name)
-                        else NullLogger.instance
-                        end
-                        @loggers[name] = logger
-                    end
-                    logger
+                @log_framework = framework
+                if init_proc = Logging::FRAMEWORK_INIT[@log_framework]
+                    init_proc.call
                 end
+                @loggers = {}
+            end
 
+
+            # @return [Logger] a logger object that can be used for generating
+            #   log messages. The type of logger returned will depend on the
+            #   log framework being used, but the logger is guaranteed to
+            #   implement the following log methods:
+            #   - error
+            #   - warning
+            #   - info
+            #   - config
+            #   - detail
+            #   - trace
+            #   - debug
+            def logger(name)
+                logger = @loggers[name]
+                unless logger
+                    logger = case @log_framework
+                    when :stdout
+                        Batch::Logging::StdOutLogger.new(name)
+                    when :java_util_logging
+                        Java::JavaUtilLogging::Logger.getLogger(name)
+                    when :log4r
+                        Log4r::Logger[name] || Log4r::Logger.new(name)
+                    when :logger
+                        Logger.new(name)
+                    else Batch::Logging::NullLogger.instance
+                    end
+                    @loggers[name] = logger
+                end
+                logger
             end
 
         end
 
-        # Default is to log to STDOUT
-        LogManager.log_framework = :stdout
+    end
 
+    # Default is to log to STDOUT
+    if RUBY_PLATFORM == 'java'
+        LogManager.log_framework = :java_util_logging
+    else
+        LogManager.log_framework = :stdout
     end
 
 end
