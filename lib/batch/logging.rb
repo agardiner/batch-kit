@@ -6,9 +6,43 @@ class Batch
         LEVELS = [:error, :warning, :info, :config, :detail, :trace, :debug]
 
         # Supported logging frameworks
-        FRAMEWORKS = [:null, :stdout, :log4r, :java_util_logging]
+        FRAMEWORKS = [
+            :null,
+            :stdout,
+            :log4r,
+            :java_util_logging,
+            :logger
+        ]
+
+        # Method aliasing needed to provide log methods corresponding to levels
+        FRAMEWORK_INIT = {
+            :java_util_logging => lambda{
+                require 'java'
+
+                Java::JavaUtilLogging::Logger.alias_method :error, :fatal
+                Java::JavaUtilLogging::Logger.alias_method :detail, :fine
+                Java::JavaUtilLogging::Logger.alias_method :trace, :finer
+                Java::JavaUtilLogging::Logger.alias_method :debug, :finest
+            },
+            :log4r => lambda{
+                require 'log4r'
+                require 'log4r/configurator'
+
+                Log4r::Configurator.custom_levels Logging::LEVELS.reverse.map{ |l| l.to_s.upcase }
+            },
+            :logger => lambda{
+                require 'logger'
+
+                Logger.alias_method :warning, :warn
+                Logger.alias_method :config, :info
+                Logger.alias_method :detail, :info
+                Logger.alias_method :trace, :debug
+            }
+        }
 
 
+        # Used for setting the log framework to use, and retrieving a logger
+        # from the current framework.
         class LogManager
 
             class << self
@@ -21,6 +55,9 @@ class Batch
                         raise ArgumentError, "Unknown logging framework #{framework.inspect}"
                     end
                     @log_framework = framework
+                    if init_proc = FRAMEWORK_INIT[@log_framework]
+                        init_proc.call
+                    end
                     @loggers = {}
                 end
 
@@ -37,7 +74,6 @@ class Batch
                 #   - trace
                 #   - debug
                 def logger(name)
-                    puts @loggers
                     logger = @loggers[name]
                     unless logger
                         logger = case @log_framework
@@ -47,6 +83,8 @@ class Batch
                             Java::JavaUtilLogging::Logger.getLogger(name)
                         when :log4r
                             Log4r::Logger[name] || Log4r::Logger.new(name)
+                        when :logger
+                            Logger.new(name)
                         else NullLogger.instance
                         end
                         @loggers[name] = logger
@@ -58,6 +96,7 @@ class Batch
 
         end
 
+        # Default is to log to STDOUT
         LogManager.log_framework = :stdout
 
     end
@@ -67,3 +106,4 @@ end
 
 require_relative 'logging/null_logger'
 require_relative 'logging/stdout_logger'
+
