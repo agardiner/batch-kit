@@ -1,0 +1,11 @@
+prop1:
+    prop1a: 'Property 1'
+    prop1b:
+        - Item1
+        - Item2
+
+prop2:
+    prop2a: 'Foo'
+    prop2b: '${prop2a}Bar'
+
+
