@@ -7,7 +7,7 @@ class Batch
     module Loggable
 
         def register(runnable)
-            @logger ||= Logging::LogManager.logger('batch.run')
+            @logger ||= Batch::LogManager.logger('batch.run')
             runnable.subscribe('execute'){ |run, proc_obj, *args| log_execute(run, proc_obj, *args) }
             runnable.subscribe('post-execute'){ |run, proc_obj, ok| log_post_execute(run, proc_obj, ok) }
         end

@@ -36,7 +36,7 @@ class Batch
                     when :detail then :light_gray
                     else :dark_gray
                     end
-                    Console.put color, msg
+                    Console.puts msg, color
                 else
                     STDOUT.puts msg
                 end
