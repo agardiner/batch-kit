@@ -27,7 +27,7 @@ class Batch
                 super()
                 raise ArgumentError, "job_class must be a Class" unless job_class.is_a?(Class)
                 raise ArgumentError, "method_name must be a Symbol" unless method_name.is_a?(Symbol)
-                job_defn = job_class.instance_variable_get(:@__job__)
+                job_defn = job_class.job
                 raise ArgumentError, "job_class must have a Job::Definition" unless job_defn
 
                 @name = task_name || method_name.to_s
