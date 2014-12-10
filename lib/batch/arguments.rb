@@ -29,7 +29,7 @@ class Batch
                     end
                     exit
                 else
-                    arg_parser.errors.each{ |error| log.error error }
+                    arg_parser.errors.each{ |error| Console.puts error, :red }
                     args_def.show_usage(nil, Console.width || 80).each do |line|
                         Console.puts line, :yellow
                     end
