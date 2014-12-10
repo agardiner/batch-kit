@@ -8,9 +8,16 @@ class Batch
 
         class Base
 
-            include ActsAsJob
             include Arguments
             include Configurable
+
+
+            # Include ActsAsJob into any inheriting class
+            def self.inherited(sub_class)
+                sub_class.class_eval do
+                    include ActsAsJob
+                end
+            end
 
         end
 
