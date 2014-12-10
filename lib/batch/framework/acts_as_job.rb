@@ -39,11 +39,8 @@ class Batch
                 if  job_method || job_opts || body
                     unless job_method.is_a?(Symbol)
                         job_opts = job_method
-                        job_method = job_opts && job_opts[:method] || :execute
+                        job_method = job_opts && job_opts[:method_name] || :execute
                     end
-
-                    # Define job method if a body block was supplied
-                    define_method(job_method, &body) if body
 
                     job_desc = nil
                     if job_opts.is_a?(Hash)
@@ -55,6 +52,9 @@ class Batch
                         job_opts = {}
                     end
                     @__desc__ = nil
+
+                    # Define job method if a body block was supplied
+                    define_method(job_method, &body) if body
 
                     opts = job_opts.clone
                     opts[:description] = job_desc unless opts[:description]
@@ -71,6 +71,12 @@ class Batch
             # Alternatively, a block may be supplied, which will be used to
             # create the task method.
             def task(task_method, task_opts = @__desc__, &body)
+                unless task_method.is_a?(Symbol)
+                    task_opts = task_method
+                    task_method = task_opts && task_opts[:method_name]
+                end
+                raise ArgumentError, "No method name specified for task" unless task_method
+
                 task_desc = nil
                 if task_opts.is_a?(Hash)
                     task_desc = @__desc__
@@ -82,9 +88,11 @@ class Batch
                 end
                 @__desc__ = nil
 
+                # Define task method if a body block was supplied
+                define_method(task_method, &body) if body
+
                 opts = task_opts.clone
                 opts[:description] = task_desc unless opts[:description]
-                task_method = task_opts[:method_name] if task_opts[:method_name]
 
                 # Create a new TaskDefinition class for the task
                 task_defn = Task::Definition.new(self, task_method)
@@ -102,7 +110,7 @@ class Batch
         # it away in a @__job_defn__ class instance variable.
         def self.included(base)
             base.extend(ClassMethods)
-            caller.first =~ /^((?:[A-Z]:)?[^:]+)/
+            caller.last =~ /^((?:[A-Z]:)?[^:]+)/
             job_file = File.realpath($1)
             job_defn = Job::Definition.new(base, job_file)
             base.instance_variable_set :@__job__, job_defn

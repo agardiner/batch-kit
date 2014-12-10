@@ -182,15 +182,4 @@ class TestJob < Test::Unit::TestCase
         JobC.new.foo
     end
 
-
-    class JobE < Batch::Job::Base
-        positional_arg :pos_arg, 'A positional arg'
-
-    end
-
-
-    def test_configuration
-        assert_equal(Batch::Config, JobE.config.class)
-    end
-
 end
