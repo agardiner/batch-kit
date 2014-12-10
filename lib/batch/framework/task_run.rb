@@ -22,20 +22,10 @@ class Batch
 
 
             # Create a new task run.
-            def initialize(task_def, job_run, *run_args)
+            def initialize(task_def, job_object, job_run, *run_args)
                 raise ArgumentError, "task_def not a Task::Definition" unless task_def.is_a?(Task::Definition)
                 raise ArgumentError, "job_run not a Job::Run" unless job_run.is_a?(Job::Run)
-                instance = nil
-                if task_def.instance_expr
-                    instance = task_def.instance_expr.gsub(/(?:\$|%)\{(?:([0-9])|([\.\w]+))\}/) do
-                        val = case
-                        when $1 then run_args[$1.to_i]
-                        when $2 then job_run.job_object.instance_eval($2)
-                        end
-                        val.is_a?(Array) ? val.join(', ') : val
-                    end
-                    instance = instance.length > 0 ? instance : nil
-                end
+                instance = eval_instance_expr(task_def.instance_expr, job_object, run_args)
                 @job_run = job_run
                 @job_run << self
                 super(task_def, instance)

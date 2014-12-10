@@ -1,5 +1,6 @@
 require 'test/unit'
 require 'batch/database/schema'
+require 'color_console'
 
 
 class TestSchema < Test::Unit::TestCase

@@ -57,17 +57,7 @@ class Batch
             # @param run_arg [] ???
             def initialize(job_def, job_object, *run_args)
                 raise ArgumentError unless job_def.is_a?(Job::Definition)
-                instance = nil
-                if job_def.instance_expr
-                    instance = job_def.instance_expr.gsub(/(?:\$|%)\{(?:([0-9])|([\.\w]+))\}/) do
-                        val = case
-                        when $1 then run_args[$1.to_i]
-                        when $2 then job_object.instance_eval($2)
-                        end
-                        val.is_a?(Array) ? val.join(', ') : val
-                    end
-                    instance = instance.length > 0 ? instance : nil
-                end
+                instance = eval_instance_expr(job_def.instance_expr, job_object, run_args)
                 @run_by = Etc.getlogin
                 @cmd_line = "#{$0} #{ARGV.map{ |s| s =~ / |^\*$/ ? %Q{"#{s}"} : s }.join(' ')}".strip
                 @pid = ::Process.pid

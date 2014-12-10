@@ -69,7 +69,7 @@ class Batch
             # @param job_obj [Object] The job object that is running this task.
             # @param args [Array<Object>] The arguments passed to the task method.
             def create_run(job_obj, *args)
-                task_run = Task::Run.new(self, job_obj.job_run, *args)
+                task_run = Task::Run.new(self, job_obj, job_obj.job_run, *args)
                 @runs << task_run
                 task_run
             end

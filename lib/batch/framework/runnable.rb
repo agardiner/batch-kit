@@ -176,6 +176,34 @@ class Batch
 
         private
 
+
+        # Replaces placeholder expressions in an instance_expr to return an
+        # instance value for a job, task, etc.
+        #
+        # @param instance_expr [String] The instance expression to be evaluated.
+        # @param instance_obj [Object] The object against which Ruby expressions
+        #   in the instance_expr will be evaluated.
+        # @param run_args [Array<Object>] An array of arguments passed to the
+        #   method used to execute the job, task, etc.
+        # @return [String] An instance value to identify this instance of the
+        #   run.
+        def eval_instance_expr(instance_expr, instance_obj, run_args)
+            if instance_expr
+                # Replace references to run arguments (i.e. ${0} to ${9}) first...
+                instance = instance_expr.gsub(/(?:\$|%)\{([0-9])\}/) do
+                    val = run_args[$1.to_i]
+                    val.is_a?(Array) ? val.join(', ') : val
+                end
+                # ... then evaluate any remaining expressions between ${} or %{}
+                instance.gsub!(/(?:\$|%)\{([^\}]+)\}/) do
+                    val = instance_obj.instance_eval($1)
+                    val.is_a?(Array) ? val.join(', ') : val
+                end
+                instance = instance.length > 0 ? instance : nil
+            end
+        end
+
+
         # Publish a runnable life-cycle event to any listeners.
         #
         # @param event [String] The name of the event.
