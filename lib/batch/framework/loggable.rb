@@ -17,8 +17,7 @@ class Batch
         def log_execute(run, proc_obj, *args)
             msg = case run
             when Job::Run then "Job '#{run.label}' started on #{run.computer} by #{run.run_by}"
-            when Task::Run then "Task '#{run.label}' started"
-            else "#{run.class.name.split('::')[-2..-1].join(' ')} #{run.name}"
+            else "#{run.class.name.split('::')[-2]} '#{run.label}' started"
             end
             @logger.info msg
         end
@@ -32,6 +31,8 @@ class Batch
         end
         module_function :log_post_execute
 
+        register(Batch::Job::Run)
+        register(Batch::Task::Run)
     end
 
 end
