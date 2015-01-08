@@ -5,7 +5,7 @@ require 'batch/job'
 class TestJobBase < Test::Unit::TestCase
 
 
-    class JobE < Batch::Job::Base
+    class JobE < Batch::Job
         positional_arg :pos_arg, 'A positional arg'
     end
 
