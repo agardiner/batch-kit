@@ -1,5 +1,6 @@
 require 'batch/arguments'
 require 'batch/config'
+require_relative 'configurable'
 require_relative 'loggable'
 
 
