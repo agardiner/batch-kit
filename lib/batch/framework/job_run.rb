@@ -4,7 +4,7 @@ require 'etc'
 class Batch
 
     # Captures details of an execution of a job.
-    module Job
+    class Job
 
         class Run < Runnable
 

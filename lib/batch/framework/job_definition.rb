@@ -3,7 +3,7 @@ require 'socket'
 
 class Batch
 
-    module Job
+    class Job
 
         # Captures details about a job definition - the class of the job, the server
         # it runs on, the file it is defined in, etc.

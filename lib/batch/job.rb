@@ -6,5 +6,5 @@ require_relative 'framework/runnable'
 require_relative 'framework/job_run'
 require_relative 'framework/task_run'
 require_relative 'framework/acts_as_job'
-require_relative 'framework/base'
+require_relative 'framework/job'
 
