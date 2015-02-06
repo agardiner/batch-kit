@@ -22,6 +22,7 @@ class Batch
             end
 
 
+            # Drops all existing batch tables in the connected schema
             def drop_tables
                 @conn.drop_table(name_for(:requestor))
                 @conn.drop_table(name_for(:request))
@@ -175,6 +176,7 @@ class Batch
                     String :job_host, size: 30, null: false
                     String :job_file, size: 255, null: false
                     String :job_args, size: 2000, null: true
+                    String :working_dir, size: 255, null: true
                     TrueClass :processed_flag, default: false, null: false
                     foreign_key :job_run, job_run, false: true
                     DateTime :request_created_at, null: false
