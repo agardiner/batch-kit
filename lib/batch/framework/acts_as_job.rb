@@ -110,7 +110,7 @@ class Batch
         # it away in a @__job_defn__ class instance variable.
         def self.included(base)
             base.extend(ClassMethods)
-            caller.last =~ /^((?:[A-Z]:)?[^:]+)/
+            caller.last =~ /^((?:[a-zA-Z]:)?[^:]+)/
             job_file = File.realpath($1)
             job_defn = Job::Definition.new(base, job_file)
             base.instance_variable_set :@__job__, job_defn
