@@ -7,7 +7,7 @@ class TestSchema < Test::Unit::TestCase
 
     def setup
         @schema = Batch::Database::Schema.new
-        if RUBY_ENGINE == 'java'
+        if RUBY_ENGINE == 'jruby'
             require 'java'
             require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
             @schema.connect('jdbc:oracle:thin:BATCH/b4tch@localhost:1521:ORCL')
