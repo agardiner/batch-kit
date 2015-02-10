@@ -6,21 +6,29 @@ class Batch
 
     class Database
 
+        # Manages the database tables and connection used to record batch processes.
         class Schema
 
-
+            # Connects to the database determined by +args+.
+            #
+            # @see Sequel#connect for details on the different arguments that
+            #   are required to connect to your database.
             def connect(*args)
                 @conn = Sequel.connect(*args)
-                @conn.loggers << Batch::LogManager.logger('batch.schema')
+                logger = Batch::LogManager.logger('batch.schema')
+                logger.level = :error
+                @conn.loggers << logger
                 @conn.autosequence = true
             end
 
 
+            # @return True if the batch database tables have been deployed.
             def deployed?
                 @conn.table_exists?(:batch_md5)
             end
 
 
+            # Drops all database tables used for tracking batch processes.
             def drop_tables
                 @conn.drop_table(:batch_requestor)
                 @conn.drop_table(:batch_request)

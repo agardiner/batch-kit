@@ -51,6 +51,7 @@ class Batch
             end
 
 
+            # Create a new MD5 hash of an object
             def initialize(obj_type, obj_name, string, digest = nil)
                 obj_ver = self.class.where('UPPER(OBJECT_NAME) = ? AND UPPER(OBJECT_TYPE) = ?',
                            obj_name.upcase, obj_type.upcase).max(:object_version) || 0

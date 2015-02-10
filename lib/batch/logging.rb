@@ -24,6 +24,25 @@ class Batch
                     alias_method :detail, :fine
                     alias_method :trace, :finer
                     alias_method :debug, :finest
+
+                    def level=(level)
+                        case level
+                        when :error
+                            self.setLevel(Java::JavaUtilLogging::Level::SEVERE)
+                        when :warning
+                            self.setLevel(Java::JavaUtilLogging::Level::WARNING)
+                        when :info
+                            self.setLevel(Java::JavaUtilLogging::Level::INFO)
+                        when :config
+                            self.setLevel(Java::JavaUtilLogging::Level::CONFIG)
+                        when :detail
+                            self.setLevel(Java::JavaUtilLogging::Level::FINE)
+                        when :trace
+                            self.setLevel(Java::JavaUtilLogging::Level::FINER)
+                        when :debug
+                            self.setLevel(Java::JavaUtilLogging::Level::FINEST)
+                        end
+                    end
                 end
             },
             :log4r => lambda{

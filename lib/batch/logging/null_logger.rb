@@ -12,6 +12,10 @@ class Batch
             end
 
 
+            def log_level=(level)
+            end
+
+
             LEVELS.each do |level|
                 define_method level do |*args|
                     log_msg(level, *args)

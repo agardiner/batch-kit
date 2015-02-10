@@ -8,7 +8,7 @@ class Batch
             # @return [String] The name of this logger
             attr_reader :name
             # @return [Symbol] The current level at which logging is set
-            attr_reader :level
+            attr_accessor :level
 
 
             def initialize(name, level = :config)
