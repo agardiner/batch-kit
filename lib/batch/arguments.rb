@@ -18,8 +18,8 @@ class Batch
 
         # Parse command-line arguments
         def parse_arguments(args = ARGV)
-            args_def.title ||= self.job_name.titleize
-            args_def.purpose ||= self.job_desc
+            args_def.title ||= self.job.name.titleize
+            args_def.purpose ||= self.job.description
             arg_parser = ArgParser::Parser.new(args_def)
             @arguments = arg_parser.parse(args)
             if @arguments == false
