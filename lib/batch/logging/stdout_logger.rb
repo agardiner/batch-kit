@@ -11,7 +11,7 @@ class Batch
             attr_accessor :level
 
 
-            def initialize(name, level = :config)
+            def initialize(name, level = :detail)
                 @name = name
                 @level = level
             end
