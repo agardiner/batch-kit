@@ -43,6 +43,7 @@ class Batch
                     primary_key :md5_id
                     String :object_type, size: 30, null: false
                     String :object_name, size: 255, null: false
+                    Fixnum :object_version, null: false
                     String :md5_digest, size: 32, null: false
                     unique [:object_type, :object_name]
                 end
