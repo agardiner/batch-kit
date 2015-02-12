@@ -81,7 +81,7 @@ class Batch
                     Bignum :job_m2_success_duration_ms, null: false
                     DateTime :job_created_at, null: false
                     DateTime :job_modified_at, null: false
-                    DateTime :job_last_run_at, null: false
+                    DateTime :job_last_run_at, null: true
                     unique [:job_host, :job_name]
                 end
 
@@ -105,7 +105,7 @@ class Batch
                     Bignum :task_m2_success_duration_ms, null: false
                     DateTime :task_created_at, null: false
                     DateTime :task_modified_at, null: false
-                    DateTime :task_last_run_at, null: false
+                    DateTime :task_last_run_at, null: true
                 end
 
                 # Job run table, holds details of a single execution of a job
