@@ -20,6 +20,7 @@ class Batch
             # @see Sequel#connect for details on the different arguments that
             #   are required to connect to your database.
             def connect(*args)
+                Sequel.default_timezone = :utc
                 @conn = Sequel.connect(*args)
                 @conn.loggers << @logger
                 @conn.autosequence = true
@@ -57,7 +58,8 @@ class Batch
                     String :object_name, size: 255, null: false
                     Fixnum :object_version, null: false
                     String :md5_digest, size: 32, null: false
-                    unique [:object_type, :object_name]
+                    DateTime :md5_created_at, null: false
+                    unique [:object_type, :object_name, :object_version]
                 end
 
                 # Job table, holds details of job definitions
