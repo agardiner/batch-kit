@@ -7,6 +7,7 @@ require 'color_console'
 class TestSchema < Test::Unit::TestCase
 
     class MyJob < Batch::Job
+
         task :first, 'First task' do
             log.info "Doing first task work"
         end

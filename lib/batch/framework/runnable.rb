@@ -68,10 +68,9 @@ class Batch
         end
 
 
-        # @return a label consisting of the task name and any instance qualifier.
+        # @return a label consisting of the name and any instance qualifier.
         def label
-            lbl = @definition.name.gsub(/([^A-Z ])([A-Z])/, '\1 \2').
-                gsub(/_/, ' ').gsub('::', ':').gsub(/\b([a-z])/) { $1.upcase }
+            lbl = @definition.name.gsub(/_/, ' ').gsub(/\b([a-z])/) { $1.upcase }
             @instance ? "#{lbl} [#{@instance}]" : lbl
         end
 

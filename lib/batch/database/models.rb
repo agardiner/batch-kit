@@ -45,7 +45,7 @@ class Batch
                 # Attempt to retrieve the MD5 for the schema; could fail if not deployed
                 md5 = self.for(obj_name, obj_type, digest) rescue nil
                 if md5
-                    [true, md5]
+                    [md5.md5_id, md5]
                 else
                     [nil, self.new(obj_type, obj_name, string, digest)]
                 end
@@ -85,7 +85,7 @@ class Batch
                 md5.save unless ok
                 if job
                     # Existing job
-                    unless ok
+                    unless ok == job.job_file_md5_id
                         job.update(job_name: job_def.name, job_method: job_def.method_name,
                                    job_desc: job_def.description, job_file: job_def.file,
                                    job_version: md5.object_version, md5: md5)

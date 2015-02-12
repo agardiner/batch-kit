@@ -59,6 +59,7 @@ class Batch
                     opts = job_opts.clone
                     opts[:description] = job_desc unless opts[:description]
                     opts[:method_name] = job_method
+                    # The @__job__ instance variable is crated when this module is included
                     @__job__.set_from_options(opts)
                 end
                 @__job__
@@ -107,7 +108,7 @@ class Batch
         # the Job ClassMethods module.
         #
         # Creates a JobDefinition object to hold details of the job, and stores
-        # it away in a @__job_defn__ class instance variable.
+        # it away in a @__job__ class instance variable.
         def self.included(base)
             base.extend(ClassMethods)
             caller.last =~ /^((?:[a-zA-Z]:)?[^:]+)/
