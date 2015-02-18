@@ -39,7 +39,8 @@ class Batch
                 if  job_method || job_opts || body
                     unless job_method.is_a?(Symbol)
                         job_opts = job_method
-                        job_method = job_opts && job_opts[:method_name] || :execute
+                        job_method = (job_opts && job_opts.is_a?(Hash) &&
+                            job_opts[:method_name]) || :execute
                     end
 
                     job_desc = nil
