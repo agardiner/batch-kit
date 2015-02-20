@@ -21,6 +21,7 @@ class Batch
 
                 Java::JavaUtilLogging::Logger.class_eval do
                     alias_method :error, :severe
+                    alias_method :warn, :warning
                     alias_method :detail, :fine
                     alias_method :trace, :finer
                     alias_method :debug, :finest
@@ -84,6 +85,16 @@ class Batch
                     init_proc.call
                 end
                 @loggers = {}
+            end
+
+
+            def level=(level)
+                case @log_framework
+                when :java_util_logging
+                    Java::JavaUtilLogging::Logger.getLogger('').level = level
+                when :log4r
+                    Log4r::Logger[''].level = level
+                end
             end
 
 
