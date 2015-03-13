@@ -8,6 +8,9 @@ class Batch
     # - #task Defines a task method
     # - #job_definition Returns the Job::Definition object for the including
     #   class
+    # - #on_failure defines a callback to be called if the job encounters an
+    #   unhandled exception.
+    #
     # Instances of the including class also get the following instance methods:
     # - #job Returns the Job::Definition for the class
     # - #job_run Returns the Job::Run associated with this object instance.
@@ -100,6 +103,14 @@ class Batch
                 task_defn = Task::Definition.new(self, task_method)
                 task_defn.set_from_options(opts)
                 task_defn
+            end
+
+
+            # Defines a handler to be invoked if the job encounters an unhandled
+            # exception.
+            def on_failure(mthd = nil, &blk)
+                Job::Run.subscribe('failure'){ |jr, obj, ex| obj.send(mthd, ex) } if mthd
+                Job::Run.subscribe('failure'){ |jr, obj, ex| obj.instance_eval(&blk) } if blk
             end
 
         end
