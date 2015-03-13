@@ -4,6 +4,10 @@ require_relative 'configurable'
 require_relative 'loggable'
 
 
+# Default log level is :detail
+Batch::LogManager.configure(level: :detail)
+
+
 class Batch
 
     class Job
@@ -26,7 +30,7 @@ class Batch
         def self.run
             job = self.new
             job.parse_arguments
-            job.execute
+            job.send(self.job.method_name)
         end
 
 
