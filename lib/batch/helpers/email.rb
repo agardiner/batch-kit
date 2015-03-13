@@ -209,7 +209,7 @@ class Batch
 
                 # Add details of the failed job and task runs
                 body = []
-                self.job_runs.each do |jr|
+                self.job.runs.each do |jr|
                     ex = nil
                     jr.task_runs.select{ |tr| tr.exception != nil }.each do |tr|
                         ex = tr.exception
@@ -240,8 +240,12 @@ class Batch
             #
             # @param recipients [String|Array] The recipient(s) to receive the
             #   email. If no recipients are specified, the con
-            def send_failure_email(recipients = nil)
-                msg = create_failure_email
+            def send_failure_email(cfg = config, recipients = nil)
+                unless cfg.is_a?(Hash)
+                    recipients = cfg
+                    cfg = config
+                end
+                msg = create_failure_email(cfg)
                 if recipients
                     # Override default recipients
                     msg.to = recipients
