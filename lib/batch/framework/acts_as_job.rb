@@ -110,7 +110,7 @@ class Batch
             # exception.
             def on_failure(mthd = nil, &blk)
                 Job::Run.subscribe('failure'){ |jr, obj, ex| obj.send(mthd, ex) } if mthd
-                Job::Run.subscribe('failure'){ |jr, obj, ex| obj.instance_eval(&blk) } if blk
+                Job::Run.subscribe('failure'){ |jr, obj, ex| obj.instance_exec(ex, &blk) } if blk
             end
 
         end

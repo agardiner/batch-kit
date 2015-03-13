@@ -21,6 +21,7 @@ class Batch
         def self.inherited(sub_class)
             sub_class.class_eval do
                 include ActsAsJob
+                on_failure{ |ex| log.error ex.message }
             end
         end
 
