@@ -26,6 +26,27 @@ class Batch
                     alias_method :trace, :finer
                     alias_method :debug, :finest
 
+
+                    def level
+                        case self.getLevel()
+                        when Java::JavaUtilLogging::Level::SEVERE
+                            :error
+                        when Java::JavaUtilLogging::Level::WARNING
+                            :warning
+                        when Java::JavaUtilLogging::Level::INFO
+                            :info
+                        when Java::JavaUtilLogging::Level::CONFIG
+                            :config
+                        when Java::JavaUtilLogging::Level::FINE
+                            :detail
+                        when Java::JavaUtilLogging::Level::FINER
+                            :trace
+                        when Java::JavaUtilLogging::Level::FINEST
+                            :debug
+                        end
+                    end
+
+
                     def level=(level)
                         case level
                         when :error
@@ -73,9 +94,37 @@ class Batch
 
         class << self
 
-            attr_reader :log_framework
+            def configure(options = {})
+                log_framework = options[:log_framework] if options[:log_framework]
+                if options.fetch(:color, true)
+                    case log_framework
+                    when :log4r
+                        require 'color_console/log4r_logger'
+                    when :java_util_logging
+                        require 'color_console/java_util_logger'
+                    else
+                        require 'color_console'
+                    end
+                end
+                level = options[:level] if options[:level]
+            end
 
 
+            # Returns a symbol identifying which logging framework is being used.
+            def log_framework
+                unless @log_framework
+                    # Default is to log to STDOUT
+                    if RUBY_PLATFORM == 'java'
+                        LogManager.log_framework = :java_util_logging
+                    else
+                        LogManager.log_framework = :stdout
+                    end
+                end
+                @log_framework
+            end
+
+
+            # Sets the logging framework
             def log_framework=(framework)
                 unless Logging::FRAMEWORKS.include?(framework)
                     raise ArgumentError, "Unknown logging framework #{framework.inspect}"
@@ -88,8 +137,20 @@ class Batch
             end
 
 
+            # Returns the current root log level
+            def level
+                case log_framework
+                when :java_util_logging
+                    Java::JavaUtilLogging::Logger.getLogger('').level
+                when :log4r
+                    Log4r::Logger[''].level
+                end
+            end
+
+
+            # Sets the log level
             def level=(level)
-                case @log_framework
+                case log_framework
                 when :java_util_logging
                     Java::JavaUtilLogging::Logger.getLogger('').level = level
                 when :log4r
@@ -110,9 +171,10 @@ class Batch
             #   - trace
             #   - debug
             def logger(name)
+                log_framework unless @loggers
                 logger = @loggers[name]
                 unless logger
-                    logger = case @log_framework
+                    logger = case log_framework
                     when :stdout
                         Batch::Logging::StdOutLogger.new(name)
                     when :java_util_logging
@@ -130,13 +192,6 @@ class Batch
 
         end
 
-    end
-
-    # Default is to log to STDOUT
-    if RUBY_PLATFORM == 'java'
-        LogManager.log_framework = :java_util_logging
-    else
-        LogManager.log_framework = :stdout
     end
 
 end

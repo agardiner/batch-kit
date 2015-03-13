@@ -44,7 +44,7 @@ class Batch
 
 
             def use_console?
-                if @use_console.nil?
+                unless @use_console
                     @use_console = defined?(::Console)
                 end
                 @use_console
