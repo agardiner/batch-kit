@@ -16,7 +16,13 @@ class Batch
 
         # Method aliasing needed to provide log methods corresponding to levels
         FRAMEWORK_INIT = {
-            :java_util_logging => lambda{
+            null: lambda{
+                require_relative 'logging/null_logger'
+            },
+            stdout: lambda{
+                require_relative 'logging/stdout_logger'
+            },
+            java_util_logging: lambda{
                 require 'java'
 
                 Java::JavaUtilLogging::Logger.class_eval do
@@ -67,13 +73,13 @@ class Batch
                     end
                 end
             },
-            :log4r => lambda{
+            log4r: lambda{
                 require 'log4r'
                 require 'log4r/configurator'
 
-                Log4r::Configurator.custom_levels Logging::LEVELS.reverse.map{ |l| l.to_s.upcase }
+                Log4r::Configurator.custom_levels *Logging::LEVELS.reverse.map{ |l| l.to_s.upcase }
             },
-            :logger => lambda{
+            logger: lambda{
                 require 'logger'
 
                 Logger.class_eval do
@@ -95,18 +101,21 @@ class Batch
         class << self
 
             def configure(options = {})
-                log_framework = options[:log_framework] if options[:log_framework]
+                self.log_framework = options[:log_framework] if options[:log_framework]
                 if options.fetch(:color, true)
-                    case log_framework
+                    case self.log_framework
                     when :log4r
                         require 'color_console/log4r_logger'
+                        Console.replace_console_logger(logger: 'batch')
                     when :java_util_logging
                         require 'color_console/java_util_logger'
+                        Console.replace_console_logger
                     else
                         require 'color_console'
                     end
                 end
-                level = options[:level] if options[:level]
+                self.level = options[:level] if options[:level]
+                self.log_file = options[:log_file] if options[:log_file]
             end
 
 
@@ -129,32 +138,60 @@ class Batch
                 unless Logging::FRAMEWORKS.include?(framework)
                     raise ArgumentError, "Unknown logging framework #{framework.inspect}"
                 end
+                if @log_framework
+                    lvl = self.level
+                end
                 @log_framework = framework
                 if init_proc = Logging::FRAMEWORK_INIT[@log_framework]
                     init_proc.call
                 end
                 @loggers = {}
+                self.level = lvl if lvl
             end
 
 
             # Returns the current root log level
             def level
-                case log_framework
-                when :java_util_logging
-                    Java::JavaUtilLogging::Logger.getLogger('').level
-                when :log4r
-                    Log4r::Logger[''].level
-                end
+                logger('').level
             end
 
 
             # Sets the log level
             def level=(level)
                 case log_framework
-                when :java_util_logging
-                    Java::JavaUtilLogging::Logger.getLogger('').level = level
                 when :log4r
-                    Log4r::Logger[''].level = level
+                    lvl = Log4r::LNAMES.index(level.to_s.upcase)
+                    Log4r::Logger.each_logger{ |l| l.level = lvl }
+                else
+                    logger('').level = level
+                end
+            end
+
+
+            # Sets the log file to which messages should be logged
+            def log_file=(log_path)
+                FileUtils.mkdir_p(File.dirname(log_path)) if log_path
+                case log_framework
+                when :java_util_logging
+                    fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
+                    if defined?(Console::JavaUtilLogger)
+                        fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT] %4$-6s  %5$s%n')
+                    else
+                        fmt = Java::JavaUtilLogging::SimpleFormatter.new
+                    end
+                    fh.setFormatter(fmt)
+                    logger('').addHandler(fh)
+                when :log4r
+                    if outputter = Log4r::Outputter['file']
+                        outputter.close
+                        logger('').remove 'file'
+                    end
+                    if log_path
+                        formatter = Log4r::PatternFormatter.new(pattern: '[%d] %-6l %x %M\r')
+                        outputter = Log4r::FileOutputter.new('file', filename: log_path, level: level,
+                                                             trunc: false, formatter: formatter)
+                        logger('').add 'file'
+                    end
                 end
             end
 
@@ -172,6 +209,11 @@ class Batch
             #   - debug
             def logger(name)
                 log_framework unless @loggers
+                case name
+                when /^batch/
+                when String
+                    name = "batch.#{name}"
+                end
                 logger = @loggers[name]
                 unless logger
                     logger = case log_framework
@@ -180,7 +222,8 @@ class Batch
                     when :java_util_logging
                         Java::JavaUtilLogging::Logger.getLogger(name)
                     when :log4r
-                        Log4r::Logger[name] || Log4r::Logger.new(name)
+                        log4r_name = name.gsub('.', '::')
+                        Log4r::Logger[log4r_name] || Log4r::Logger.new(log4r_name)
                     when :logger
                         Logger.new(name)
                     else Batch::Logging::NullLogger.instance
@@ -195,8 +238,4 @@ class Batch
     end
 
 end
-
-
-require_relative 'logging/null_logger'
-require_relative 'logging/stdout_logger'
 

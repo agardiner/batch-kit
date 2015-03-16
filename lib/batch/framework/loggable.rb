@@ -7,7 +7,6 @@ class Batch
     module Loggable
 
         def register(runnable)
-            @logger ||= Batch::LogManager.logger('batch.run')
             runnable.subscribe('execute'){ |run, proc_obj, *args| log_execute(run, proc_obj, *args) }
             runnable.subscribe('post-execute'){ |run, proc_obj, ok| log_post_execute(run, proc_obj, ok) }
         end
@@ -19,6 +18,7 @@ class Batch
             when Job::Run then "Job '#{run.label}' started on #{run.computer} by #{run.run_by}"
             else "#{run.class.name.split('::')[-2]} '#{run.label}' started"
             end
+            @logger ||= Batch::LogManager.logger('batch.run')
             @logger.info msg
         end
         module_function :log_execute
@@ -27,6 +27,7 @@ class Batch
         def log_post_execute(run, proc_obj, ok)
             msg = "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
                     ok ? 'successfully' : 'with errors'} in #{run.elapsed} seconds"
+            @logger ||= Batch::LogManager.logger('batch.run')
             @logger.info msg
         end
         module_function :log_post_execute
