@@ -13,19 +13,6 @@ class Batch
 
         class << self
 
-            # @return [Fanout] A Fanout object used to maintain and notify
-            #   subscribers to lifecycle events.
-            def fanout
-                @fanout ||= Fanout.new
-            end
-
-
-            # Subscribe to life-cycle events on this runnable class.
-            def subscribe(event, &callback)
-                fanout.subscribe(event, &callback)
-            end
-
-
             # Add delegates for each specified property in +props+.
             def add_delegated_properties(*props)
                 def_delegators :@definition, *props
@@ -64,7 +51,7 @@ class Batch
             @definition = definition
             @instance = instance
             @status = :initialized
-            publish('initialized', self)
+            Batch::Events.publish(self, 'initialized')
         end
 
 
@@ -91,14 +78,14 @@ class Batch
         # @return [Boolean] True if the process should proceed, or false if it
         #   should be skipped.
         def pre_execute(process_obj, *args)
-            if self.class.fanout.has_subscribers?('pre-execute')
-                run = publish('pre-execute', self, process_obj, *args)
+            if Batch::Events.has_subscribers?(self, 'pre-execute')
+                run = Batch::Events.publish(self, 'pre-execute', process_obj, *args)
             else
                 run = true
             end
             unless run
                 @status = :skipped unless run
-                publish('skipped', self, process_obj, *args)
+                Batch::Events.publish(self, 'skipped', process_obj, *args)
             end
             run
         end
@@ -114,7 +101,7 @@ class Batch
         def around_execute(process_obj, *args)
             @start_time = Time.now
             @status = :executing
-            publish('execute', self, process_obj, *args)
+            Batch::Events.publish(self, 'execute', process_obj, *args)
             begin
                 yield
             ensure
@@ -132,7 +119,7 @@ class Batch
         def success(process_obj, result)
             @status = :completed
             @exit_code = 0 unless @exit_code
-            publish('success', self, process_obj, result)
+            Batch::Events.publish(self, 'success', process_obj, result)
         end
 
 
@@ -149,7 +136,7 @@ class Batch
             @status = :failed
             @exit_code = 1 unless @exit_code
             @exception = exception
-            publish('failure', self, process_obj, exception)
+            Batch::Events.publish(self, 'failure', process_obj, exception)
         end
 
 
@@ -159,7 +146,7 @@ class Batch
         #   process.
         def abort(process_obj)
             @status = :aborted
-            publish('abort', self, process_obj)
+            Batch::Events.publish(self, 'abort', process_obj)
         end
 
 
@@ -170,7 +157,7 @@ class Batch
         # @param ok [Boolean] True if the process completed without throwing
         #   an exception.
         def post_execute(process_obj, success)
-            publish('post-execute', self, process_obj, success)
+            Batch::Events.publish(self, 'post-execute', process_obj, success)
         end
 
 
@@ -201,15 +188,6 @@ class Batch
                 end
                 instance = instance.length > 0 ? instance : nil
             end
-        end
-
-
-        # Publish a runnable life-cycle event to any listeners.
-        #
-        # @param event [String] The name of the event.
-        # @param args [*Object] Any payload arguments to accompany the event.
-        def publish(event, *args)
-            self.class.fanout.publish(event, *args)
         end
 
     end

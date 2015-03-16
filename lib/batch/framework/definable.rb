@@ -27,12 +27,6 @@ class Batch
             end
 
 
-            # Access the class-level list of subscribers.
-            def fanout
-                @fanout ||= Fanout.new
-            end
-
-
             # When this class is inherited, we need to copy the common property
             # names into the sub-class, since each sub-class needs the common
             # property names defined on this base class, as well as any sub-
@@ -75,7 +69,7 @@ class Batch
         # Create a new instance of this definition.
         def initialize
             @runs = []
-            self.class.fanout.publish('initialized', self)
+            Batch::Events.publish(self, 'initialized')
         end
 
 
@@ -143,7 +137,7 @@ class Batch
                     end
                 end
             end
-            self.class.fanout.publish('installed', self, tgt_class, mthd_name)
+            Batch::Events.publish(self, 'installed', tgt_class, mthd_name)
         end
 
 

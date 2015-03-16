@@ -1,4 +1,4 @@
-require_relative 'framework/fanout'
+require_relative 'framework/events'
 require_relative 'framework/definable'
 require_relative 'framework/job_definition'
 require_relative 'framework/task_definition'

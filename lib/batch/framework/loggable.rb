@@ -1,5 +1,6 @@
 require 'batch/logging'
 
+
 class Batch
 
     # Adds logging behaviour to a batch process, causing its lifecycle to be
@@ -7,8 +8,8 @@ class Batch
     module Loggable
 
         def register(runnable)
-            runnable.subscribe('execute'){ |run, proc_obj, *args| log_execute(run, proc_obj, *args) }
-            runnable.subscribe('post-execute'){ |run, proc_obj, ok| log_post_execute(run, proc_obj, ok) }
+            Batch::Events.subscribe(runnable, 'execute'){ |run, proc_obj, *args| log_execute(run, proc_obj, *args) }
+            Batch::Events.subscribe(runnable, 'post-execute'){ |run, proc_obj, ok| log_post_execute(run, proc_obj, ok) }
         end
         module_function :register
 

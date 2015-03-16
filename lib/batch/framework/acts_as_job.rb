@@ -109,8 +109,8 @@ class Batch
             # Defines a handler to be invoked if the job encounters an unhandled
             # exception.
             def on_failure(mthd = nil, &blk)
-                Job::Run.subscribe('failure'){ |jr, obj, ex| obj.send(mthd, ex) } if mthd
-                Job::Run.subscribe('failure'){ |jr, obj, ex| obj.instance_exec(ex, &blk) } if blk
+                Batch::Events.subscribe(Job::Run, 'failure'){ |jr, obj, ex| obj.send(mthd, ex) } if mthd
+                Batch::Events.subscribe(Job::Run, 'failure'){ |jr, obj, ex| obj.instance_exec(ex, &blk) } if blk
             end
 
         end
