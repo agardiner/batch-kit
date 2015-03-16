@@ -114,7 +114,7 @@ class Batch
                         require 'color_console'
                     end
                 end
-                self.level = options[:level] if options[:level]
+                self.level = options[:log_level] if options[:log_level]
                 self.log_file = options[:log_file] if options[:log_file]
             end
 
@@ -192,6 +192,8 @@ class Batch
                                                              trunc: false, formatter: formatter)
                         logger('').add 'file'
                     end
+                when :stdout
+                    puts "TODO: Set log file to #{log_path}"
                 end
             end
 
@@ -233,6 +235,13 @@ class Batch
                 logger
             end
 
+        end
+
+
+        if defined?(Batch::Events)
+            Batch::Events.subscribe(Job::Definition, 'post-configure') do |src, cfg|
+                LogManager.configure(cfg)
+            end
         end
 
     end

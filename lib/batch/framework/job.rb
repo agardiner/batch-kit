@@ -5,7 +5,7 @@ require_relative 'loggable'
 
 
 # Default log level is :detail
-Batch::LogManager.configure(level: :detail)
+Batch::LogManager.configure(log_level: :detail)
 
 
 class Batch
