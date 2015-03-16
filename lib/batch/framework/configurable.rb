@@ -6,14 +6,15 @@ class Batch
 
         module ClassMethods
 
-            def configure(cfg_file = nil, options = {})
-                if cfg_file.is_a?(Hash)
-                    options = cfg_file
-                    cfg_file = nil
-                end
-                config.decryption_key = options[:decryption_key] if options[:decryption_key]
-                if cfg_file
+            def configure(*cfg_files)
+                options = cfg_files.last.is_a?(Hash) ? cfg_files.pop : {}
+                config.decryption_key = options.delete(:decryption_key) if options[:decryption_key]
+                config.merge!(options)
+                cfg_files.each do |cfg_file|
                     config.load(cfg_file, !options.fetch(:ignore_unknown_placeholders, true))
+                end
+                if defined?(Batch::Events)
+                    Batch::Events.publish(self, 'post-configure', config)
                 end
                 config
             end
