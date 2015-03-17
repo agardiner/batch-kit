@@ -101,6 +101,7 @@ class Batch
         def around_execute(process_obj, *args)
             @start_time = Time.now
             @status = :executing
+            @exit_code = nil
             Batch::Events.publish(self, 'execute', process_obj, *args)
             begin
                 yield

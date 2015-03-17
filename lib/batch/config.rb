@@ -154,6 +154,7 @@ class Batch
         def initialize(hsh = nil, raise_on_unknown_var = true)
             super(nil)
             @lookup_keys = {}
+            @decryption_key = nil
             merge!(hsh, raise_on_unknown_var) if hsh
         end
 
