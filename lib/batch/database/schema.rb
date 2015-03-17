@@ -179,13 +179,15 @@ class Batch
                 # Request table, holds details of job run requests
                 @conn.create_table?(:batch_request) do
                     primary_key :request_id
+                    String :request_type, size: 80, null: false
                     String :request_label, size: 80, null: false
+                    String :request_source, size: 80, null: false
                     String :job_host, size: 30, null: false
                     String :job_file, size: 255, null: false
                     String :job_args, size: 2000, null: true
-                    String :working_dir, size: 255, null: true
+                    String :job_working_dir, size: 255, null: true
                     TrueClass :processed_flag, default: false, null: false
-                    foreign_key :job_run, :batch_job_run, false: true
+                    foreign_key :job_run, :batch_job_run, null: true
                     DateTime :request_created_at, null: false
                     DateTime :request_start_at, null: true
                     DateTime :request_launched_at, null: true
