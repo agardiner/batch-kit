@@ -34,12 +34,6 @@ class Batch
             job.send(self.job.method_name)
         end
 
-
-        # Returns a logger instance named after the class
-        def log
-            @log ||= LogManager.logger(self.class.name)
-        end
-
     end
 
 end
