@@ -77,7 +77,7 @@ class Batch
                 require 'log4r'
                 require 'log4r/configurator'
 
-                Log4r::Configurator.custom_levels *Logging::LEVELS.reverse.map{ |l| l.to_s.upcase }
+                Log4r::Configurator.custom_levels(*Logging::LEVELS.reverse.map{ |l| l.to_s.upcase })
             },
             logger: lambda{
                 require 'logger'
@@ -213,6 +213,8 @@ class Batch
                 log_framework unless @loggers
                 case name
                 when /^batch/
+                when ''
+                    name = 'batch'
                 when String
                     name = "batch.#{name}"
                 end
