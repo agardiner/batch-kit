@@ -10,8 +10,7 @@ class Batch
             :null,
             :stdout,
             :log4r,
-            :java_util_logging,
-            :logger
+            :java_util_logging
         ]
 
         # Method aliasing needed to provide log methods corresponding to levels
@@ -23,71 +22,10 @@ class Batch
                 require_relative 'logging/stdout_logger'
             },
             java_util_logging: lambda{
-                require 'java'
-
-                Java::JavaUtilLogging::Logger.class_eval do
-                    alias_method :error, :severe
-                    alias_method :warn, :warning
-                    alias_method :detail, :fine
-                    alias_method :trace, :finer
-                    alias_method :debug, :finest
-
-
-                    def level
-                        case self.getLevel()
-                        when Java::JavaUtilLogging::Level::SEVERE
-                            :error
-                        when Java::JavaUtilLogging::Level::WARNING
-                            :warning
-                        when Java::JavaUtilLogging::Level::INFO
-                            :info
-                        when Java::JavaUtilLogging::Level::CONFIG
-                            :config
-                        when Java::JavaUtilLogging::Level::FINE
-                            :detail
-                        when Java::JavaUtilLogging::Level::FINER
-                            :trace
-                        when Java::JavaUtilLogging::Level::FINEST
-                            :debug
-                        end
-                    end
-
-
-                    def level=(level)
-                        case level
-                        when :error
-                            self.setLevel(Java::JavaUtilLogging::Level::SEVERE)
-                        when :warning
-                            self.setLevel(Java::JavaUtilLogging::Level::WARNING)
-                        when :info
-                            self.setLevel(Java::JavaUtilLogging::Level::INFO)
-                        when :config
-                            self.setLevel(Java::JavaUtilLogging::Level::CONFIG)
-                        when :detail
-                            self.setLevel(Java::JavaUtilLogging::Level::FINE)
-                        when :trace
-                            self.setLevel(Java::JavaUtilLogging::Level::FINER)
-                        when :debug
-                            self.setLevel(Java::JavaUtilLogging::Level::FINEST)
-                        end
-                    end
-                end
+                require_relative 'logging/java_util_logger'
             },
             log4r: lambda{
-                require 'log4r'
-                require 'log4r/configurator'
-
-                Log4r::Configurator.custom_levels(*Logging::LEVELS.reverse.map{ |l| l.to_s.upcase })
-            },
-            logger: lambda{
-                require 'logger'
-
-                Logger.class_eval do
-                    alias_method :warning, :warn
-                    alias_method :config, :info
-                    alias_method :detail, :info
-                    alias_method :trace, :debug
-                end
+                require_relative 'logging/log4r_logger'
             }
         }
 
@@ -193,7 +131,7 @@ class Batch
                         logger('').add 'file'
                     end
                 when :stdout
-                    puts "TODO: Set log file to #{log_path}"
+                    logger('').log_file = log_path
                 end
             end
 
@@ -222,7 +160,9 @@ class Batch
                 unless logger
                     logger = case log_framework
                     when :stdout
-                        Batch::Logging::StdOutLogger.new(name)
+                        l = Batch::Logging::StdOutLogger.new(name)
+                        l.log_file = @loggers['batch'].log_file if name != 'batch'
+                        l
                     when :java_util_logging
                         Java::JavaUtilLogging::Logger.getLogger(name)
                     when :log4r
