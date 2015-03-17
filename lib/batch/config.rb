@@ -90,7 +90,7 @@ class Batch
         # @return The results of parsing the YAML contents of +yaml_file+.
         def self.load_yaml(yaml_file)
             require 'yaml'
-            yaml = YAML.load(IO.read(yaml_file))
+            YAML.load(IO.read(yaml_file))
         end
 
 
@@ -122,15 +122,15 @@ class Batch
         #
         # @param str [String] A String to be expanded from 0 or more placeholder
         #   substitutions
-        # @param props [Hash, Array<Hash>] A properties Hash or array of Hashes from
-        #   which placeholder variable values can be looked up.
+        # @param properties [Hash, Array<Hash>] A properties Hash or array of Hashes
+        #   from which placeholder variable values can be looked up.
         # @param raise_on_unknown_var [Boolean] Whether or not an exception should
         #   be raised if no property is found for a placeholder expression. If false,
         #   unrecognised placeholder variables are left in the returned string.
         # @return [String] A new string with placeholder variables replaced by
         #   the values in +props+.
-        def self.expand_placeholders(str, props, raise_on_unknown_var = false)
-            chain = props.is_a?(Hash) ? [props] : props.reverse
+        def self.expand_placeholders(str, properties, raise_on_unknown_var = false)
+            chain = properties.is_a?(Hash) ? [properties] : properties.reverse
             str.gsub(/(?:[$%])\{([a-zA-Z0-9_]+)\}/) do
                 case
                 when src = chain.find{ |props| props.has_key?($1) } then src[$1]

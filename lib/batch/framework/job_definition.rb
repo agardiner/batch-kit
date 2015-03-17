@@ -45,6 +45,7 @@ class Batch
                 @name = job_name || job_class.name.gsub(/([^A-Z ])([A-Z])/, '\1 \2').
                     gsub(/_/, ' ').gsub('::', ':').gsub(/\b([a-z])/) { $1.upcase }
                 @computer = Socket.gethostname
+                @method_name = nil
                 @tasks = {}
             end
 

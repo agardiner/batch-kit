@@ -32,6 +32,7 @@ class Batch
 
                 @name = task_name || method_name.to_s
                 @job = job_defn
+                @method_name = nil
                 self.method_name = method_name
                 @job << self
             end

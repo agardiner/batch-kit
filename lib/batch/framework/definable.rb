@@ -15,7 +15,7 @@ class Batch
             #   Run objects can obtain a list of process properties that they
             #   can delegate.
             def add_properties(*props)
-                attr_accessor *props
+                attr_accessor(*props)
                 properties.concat(props)
             end
 
