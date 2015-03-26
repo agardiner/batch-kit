@@ -300,7 +300,7 @@ class Batch
             elsif name =~ /^(.+)=$/
                 self[$1]= args.first
             else
-                super
+                raise ArgumentError, "No configuration entry for key '#{name}'"
             end
         end
 
