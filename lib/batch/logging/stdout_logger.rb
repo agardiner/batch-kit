@@ -11,10 +11,17 @@ class Batch
             # @return [String] The log file path, if any
             attr_reader :log_file
 
+            # Width at which to split lines
+            attr_accessor :width
+            # Amount by which to indent lines
+            attr_accessor :indent
+
 
             def initialize(name, level = :detail)
                 @name = name
                 @level = level
+                @indent = 8
+                @width = Console.width if use_console?
             end
 
 
@@ -36,7 +43,10 @@ class Batch
 
             def log_msg(level, *args)
                 return if LEVELS.index(level) > LEVELS.index(@level)
-                msg = "%-6s  %s" % [level.to_s.upcase, args.join(' ')]
+                lvl = level.to_s.upcase
+                msg = args.join(' ')
+                spacer = LEVELS.index(level) >= LEVELS.index(:config) ? '  ' : ''
+                fmt_msg = "%-6s  %s%s" % [lvl, spacer, msg]
                 if use_console?
                     color = case level
                     when :error then :red
@@ -46,12 +56,20 @@ class Batch
                     when :detail then :light_gray
                     else :dark_gray
                     end
+
+                    indent = @indent || 0
+                    indent += 2 if indent > 0 && [:config, :detail, :trace, :debug].include?(level)
+
+                    msg = @width ? Console.wrap_text(msg, @width - indent) : [msg]
+                    msg = msg.each_with_index.map do |line, i|
+                        "%-6s  %s%s" % [[lvl][i], spacer, line]
+                    end.join("\n")
                     Console.puts msg, color
                 else
-                    STDOUT.puts msg
+                    STDOUT.puts fmt_msg
                 end
                 if @log_file
-                    @log_file.puts Time.now.strftime('[%F %T] ') + msg
+                    @log_file.puts Time.now.strftime('[%F %T] ') + fmt_msg
                 end
             end
 
