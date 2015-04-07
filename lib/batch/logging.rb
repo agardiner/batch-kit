@@ -1,3 +1,6 @@
+require 'fileutils'
+
+
 class Batch
 
     module Logging
