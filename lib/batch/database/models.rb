@@ -4,6 +4,7 @@ class Batch
 
     class Database
 
+        Sequel::Model.plugin :dirty
 
         # Records an MD5 hash of String objects, which are used to detect when
         # items such as jobs have changed. This in turn is used to increment a
@@ -94,6 +95,8 @@ class Batch
                     # New job
                     job = self.new(job_def, md5).save
                 end
+                job_def.job_id = job.job_id
+                job_def.job_version = job.job_version
                 job
             end
 
@@ -113,6 +116,273 @@ class Batch
                       job_abort_count: 0, job_min_success_duration_ms: 0,
                       job_max_success_duration_ms: 0, job_mean_success_duration_ms: 0,
                       job_m2_success_duration_ms: 0)
+            end
+
+
+            def job_start(job_run)
+                self.job_last_run_at = job_run.start_time
+                self.job_run_count += 1
+                self.save
+            end
+
+
+            def job_success(job_run)
+                self.job_success_count += 1
+                n = self.job_success_count
+                ms = job_run.elapsed * 1000
+                delta = ms - self.job_mean_success_duration_ms
+                self.job_min_success_duration_ms = self.job_min_success_duration_ms == 0 ?
+                    ms : [self.job_min_success_duration_ms, ms].min
+                self.job_max_success_duration_ms = self.job_max_success_duration_ms == 0 ?
+                    ms : [self.job_max_success_duration_ms, ms].max
+                mean = self.job_mean_success_duration_ms += delta / n
+                self.job_m2_success_duration_ms += delta * (ms - mean)
+                self.save
+            end
+
+
+            def job_failure(job_run)
+                self.job_failure_count += 1
+                self.save
+            end
+
+
+            def job_abort(job_run)
+                self.job_abort_count += 1
+                self.save
+            end
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'pre-execute') do |job_run, job_obj, *args|
+                Job.register(job_run.definition) if job_run.persist?
+                true
+            end
+            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj|
+                Job[job_run.job_id].job_start(job_run) if job_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Job::Run, 'success') do |job_run, job_obj|
+                Job[job_run.job_id].job_success(job_run) unless job_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Job::Run, 'failure') do |job_run, job_obj|
+                Job[job_run.job_id].job_failure(job_run) unless job_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Job::Run, 'abort') do |job_run, job_obj|
+                Job[job_run.job_id].job_abort(job_run) unless job_run.persist?
+            end
+
+        end
+
+
+
+        # Records details of Task definitions
+        class Task < Sequel::Model(:batch_task)
+
+            many_to_one :job, class: Job, key: :job_id
+
+            plugin :timestamps, create: :task_created_at, update: :task_modified_at,
+                update_on_create: true
+
+
+            def self.register(job_def)
+                Task.where(job_id: job_def.job_id).update(task_current_flag: false)
+                job_def.tasks.each do |task_key, task_def|
+                    task = self.where(job_id: job_def.job_id,
+                                      task_method: task_def.method_name.to_s).first
+                    if task
+                        task.update(task_name: task_def.name, task_class: task_def.task_class.name,
+                                    task_desc: task_def.description, task_current_flag: 'Y')
+                    else
+                        task = Task.new(task_def).save
+                    end
+                    task_def.task_id = task.task_id
+                end
+            end
+
+
+            def initialize(task_def)
+                super(job_id: task_def.job.job_id, job_version: task_def.job.job_version,
+                      task_name: task_def.name, task_class: task_def.task_class.name,
+                      task_method: task_def.method_name.to_s, task_desc: task_def.description,
+                      task_run_count: 0, task_success_count: 0, task_fail_count: 0,
+                      task_abort_count: 0, task_min_success_duration_ms: 0,
+                      task_max_success_duration_ms: 0, task_mean_success_duration_ms: 0,
+                      task_m2_success_duration_ms: 0)
+            end
+
+
+            def task_start(task_run)
+                self.task_last_run_at = task_run.start_time
+                self.task_run_count += 1
+                self.save
+            end
+
+
+            def task_success(task_run)
+                self.task_success_count += 1
+                n = self.task_success_count
+                ms = task_run.elapsed * 1000
+                delta = ms - self.task_mean_success_duration_ms
+                self.task_min_success_duration_ms = self.task_min_success_duration_ms == 0 ?
+                    ms : [self.task_min_success_duration_ms, ms].min
+                self.task_max_success_duration_ms = self.task_max_success_duration_ms == 0 ?
+                    ms : [self.task_max_success_duration_ms, ms].max
+                mean = self.task_mean_success_duration_ms += delta / n
+                self.task_m2_success_duration_ms += delta * (ms - mean)
+                self.save
+            end
+
+
+            def task_failure(task_run)
+                self.task_failure_count += 1
+                self.save
+            end
+
+
+            def task_abort(task_run)
+                self.task_abort_count += 1
+                self.save
+            end
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'pre-execute') do |job_run, job_obj, *args|
+                Task.register(job_run.definition) if job_run.persist?
+            end
+
+            Batch::Events.subscribe(Batch::Task::Run, 'execute') do |task_run, job_obj|
+                Task[task_run.task_id].task_start(task_run) if task_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Task::Run, 'success') do |task_run, job_obj|
+                Task[task_run.task_id].task_success(task_run) if task_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Task::Run, 'failure') do |task_run, job_obj|
+                Task[task_run.task_id].task_failure(task_run) if task_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Task::Run, 'abort') do |task_run, job_obj|
+                Task[task_run.task_id].task_abort(task_run) if task_run.persist?
+            end
+
+        end
+
+
+
+        # Records details of job runs
+        class JobRun < Sequel::Model(:batch_job_run)
+
+            many_to_one :job, class: Job, key: :job_id
+
+
+            def initialize(job_run)
+                super(job_id: job_run.job_id, job_instance: job_run.instance,
+                      job_version: job_run.job_version, job_run_by: job_run.run_by,
+                      job_cmd_line: job_run.cmd_line, job_start_time: job_run.start_time,
+                      job_status: job_run.status.to_s.upcase, job_pid: job_run.pid)
+            end
+
+
+            def job_start(job_run)
+                self.save
+                job_run.job_run_id = self.job_run
+            end
+
+
+            def job_end(job_run)
+                self.job_end_time = job_run.end_time
+                self.job_status = job_run.status.to_s.upcase
+                self.job_pid = nil
+                self.job_exit_code = job_run.exit_code
+                self.save
+            end
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+                JobRun.new(job_run).job_start(job_run) if job_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do |job_run, job_obj, ok|
+                JobRun[job_run.job_run_id].job_end(job_run) if job_run.persist?
+            end
+
+        end
+
+
+
+        # Captures the value of all defined command-line arguments to the job
+        class JobRunArg < Sequel::Model(:batch_job_run_arg)
+
+            unrestrict_primary_key
+
+
+            def self.from(job_run)
+                job_run.job_args && job_run.job_args.each_pair do |name, val|
+                    JobRunArg.new(job_run.job_run_id, name, val).save
+                end
+            end
+
+
+            def initialize(job_run, name, val)
+                super(job_run: job_run, job_arg_name: name, job_arg_value: val)
+            end
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+                JobRunArg.from(job_run) if job_run.persist?
+            end
+
+        end
+
+
+
+        # Captures details of a job run exception
+        class JobRunFailure < Sequel::Model(:batch_job_run_failure)
+
+            many_to_one :job, class: Job, key: :job_id
+
+
+            def initialize(job_run, ex)
+                super(job_run: job_run.job_run_id, job_id: job_run.definition.job_id,
+                      job_version: job_run.definition.job_version, job_failed_at: Time.now,
+                      exception_message: ex.message, exception_backtrace: ex.backtrace.join("\n"))
+            end
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'failure') do |job_run, job_obj, ex|
+                JobRunFailure.new(job_run, ex).save if job_run.persist?
+            end
+
+        end
+
+
+
+        # Capture details of a task run
+        class TaskRun < Sequel::Model(:batch_task_run)
+
+            many_to_one :task, class: Task, key: :task_id
+
+            def initialize(task_run)
+                super(task_id: task_run.task_id, job_run: task_run.job_run.job_run_id,
+                      task_instance: task_run.instance, task_start_time: task_run.start_time,
+                      task_status: task_run.status.to_s.upcase)
+            end
+
+
+            def task_start(task_run)
+                self.save
+                task_run.task_run_id = self.task_run
+            end
+
+
+            def task_end(task_run)
+                self.task_end_time = task_run.end_time
+                self.task_status = task_run.status.to_s.upcase
+                self.task_exit_code = task_run.exit_code
+                self.save
+            end
+
+
+            Batch::Events.subscribe(Batch::Task::Run, 'execute') do |task_run, job_obj, *args|
+                TaskRun.new(task_run).task_start(task_run) if task_run.persist?
+            end
+            Batch::Events.subscribe(Batch::Task::Run, 'post-execute') do |task_run, job_obj, ok|
+                TaskRun[task_run.task_run_id].task_end(task_run) if task_run.persist?
             end
 
         end

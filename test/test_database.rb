@@ -8,6 +8,10 @@ class TestSchema < Test::Unit::TestCase
 
     class MyJob < Batch::Job
 
+        positional_arg :pos_arg, 'Pos arg', default: 'None'
+        keyword_arg :foo, 'More foo'
+
+
         task :first, 'First task' do
             log.info "Doing first task work"
         end
@@ -26,7 +30,8 @@ class TestSchema < Test::Unit::TestCase
 
 
     def setup
-        @db = Batch::Database.new(log_level: :info)
+        #@db = Batch::Database.new(log_level: :info)
+        @db = Batch::Database.new(log_level: :error)
         if RUBY_ENGINE == 'jruby'
             require 'java'
             require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
