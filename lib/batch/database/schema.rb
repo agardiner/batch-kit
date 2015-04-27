@@ -96,7 +96,7 @@ class Batch
                     String :task_class, size: 80, null: false
                     String :task_method, size: 80, null: false
                     String :task_desc, size: 255, null: true
-                    TrueClass :task_current_flag, null: false
+                    TrueClass :task_current_flag, null: false, default: true
                     Fixnum :task_run_count, null: false
                     Fixnum :task_success_count, null: false
                     Fixnum :task_fail_count, null: false
@@ -119,8 +119,8 @@ class Batch
                     String :job_run_by, size: 50, null: false
                     String :job_cmd_line, size: 2000, null: true
                     DateTime :job_start_time, null: false
-                    DateTime :job_end_time, null: false
-                    String :job_status, size: 10, null: false
+                    DateTime :job_end_time, null: true
+                    String :job_status, size: 12, null: false
                     Fixnum :job_pid, null: true
                     Fixnum :job_exit_code, null: true
                     TrueClass :job_purged_flag, null: false, default: false
@@ -130,7 +130,7 @@ class Batch
                 @conn.create_table?(:batch_job_run_arg) do
                     foreign_key :job_run, :batch_job_run
                     String :job_arg_name, size: 50, null: false
-                    String :job_arg_value, size: 255
+                    String :job_arg_value, size: 255, null: true
                     primary_key [:job_run, :job_arg_name]
                 end
 
@@ -161,10 +161,10 @@ class Batch
                     primary_key :task_run
                     foreign_key :task_id, :batch_task, null: false
                     foreign_key :job_run, :batch_job_run, null: false
-                    String :task_instance, size: 80, null: false
+                    String :task_instance, size: 80, null: true
                     DateTime :task_start_time, null: false
                     DateTime :task_end_time, null: true
-                    String :task_status, size: 10, null: false
+                    String :task_status, size: 12, null: false
                     Fixnum :task_exit_code, null: true
                 end
 
