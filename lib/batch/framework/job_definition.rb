@@ -19,9 +19,9 @@ class Batch
             # @!attribute :do_not_track [Boolean] By default, job executions may be
             #   recorded (if a persistence layer is available). This attribute can be
             #   used by jobs to indicate that runs of this job should not be recorded.
-            # @!attribute :tasks [Array<Task::Definition>] An array of Task::Definition
-            #   objects capturing details of each task that is defined for this
-            #   Job::Definition.
+            # @!attribute :tasks [Hash<Task::Definition>] A hash of task method names to
+            #   Task::Definition objects capturing details of each task that is defined
+            #   for this Job::Definition.
             # @!attribute :job_runs [Array<Job::Run>] An array of Job::Run instances for
             #   each run of this job in the current Ruby execution.
             # @!attribute :job_id [Fixnum] A unique id for this Job::Definition, as

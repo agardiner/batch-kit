@@ -23,15 +23,15 @@ class Batch
             # @!attribute :requestors [Array<String>] A list of the requestor(s) that
             #   requested for this job to be run. May be more than one if the request
             #   has been in a queue.
-            # @!attribute :job_start_time [Time] Time at which the job started
+            # @!attribute :start_time [Time] Time at which the job started
             #   executing.
-            # @!attribute :job_end_time [Time] Time at which the job ended execution.
+            # @!attribute :end_time [Time] Time at which the job ended execution.
             # @!attribute :task_runs [Array<TaskRun>] An array containing details of
             #   the tasks that were executed by this job.
             # @!attribute :exit_code [Fixnum] An exit status code for the job, where
             #   0 signifies success, and non-zero failure. A value of -1 indicates
             #   the job was aborted (killed).
-            # @!attribute :exceptions [Exception] Any uncaught exception that
+            # @!attribute :exception [Exception] Any uncaught exception that
             #   occurred during job execution (and which was not caught by a task
             #   run).
             PROPERTIES = [
@@ -62,6 +62,7 @@ class Batch
                 @cmd_line = "#{$0} #{ARGV.map{ |s| s =~ / |^\*$/ ? %Q{"#{s}"} : s }.join(' ')}".strip
                 @pid = ::Process.pid
                 @task_runs = []
+                @job_args = job_object.arguments if job_object.respond_to?(:arguments)
                 super(job_def, instance)
             end
 
@@ -128,6 +129,11 @@ class Batch
             def abort(process_obj)
                 super
                 process_obj.on_abort if process_obj.respond_to?(:on_abort)
+            end
+
+
+            def persist?
+                !definition.do_not_track
             end
 
 

@@ -32,6 +32,11 @@ class Batch
             end
 
 
+            def persist?
+                !definition.job.do_not_track
+            end
+
+
             def to_s
                 "<Batch::Task::Run label='#{label}'>"
             end
