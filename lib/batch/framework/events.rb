@@ -73,8 +73,8 @@ class Batch
                             r = sub.callback.call(source, *payload)
                             res &&= r
                         rescue Exception => ex
-                            STDERR.puts "Exception in listener during #{event} on #{source}: #{ex}\n" +
-                                "  at: #{ex.backtrace.first}"
+                            STDERR.puts "Exception in '#{event}' event listener for #{source}: #{ex}\n" +
+                                "  at: #{ex.backtrace[0...10].join("\n")}"
                         end
                     end
                 end
