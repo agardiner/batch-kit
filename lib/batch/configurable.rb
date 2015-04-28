@@ -1,3 +1,6 @@
+require 'batch/config'
+
+
 class Batch
 
     # Adds a configure class method that can be used to load a configuration file

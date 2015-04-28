@@ -1,7 +1,6 @@
 require 'batch/arguments'
-require 'batch/config'
-require_relative 'configurable'
-require_relative 'loggable'
+require 'batch/configurable'
+require 'batch/loggable'
 
 
 # Default log level is :detail
