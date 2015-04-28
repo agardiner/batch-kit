@@ -73,10 +73,10 @@ class Batch
         end
 
 
-        # Sets job properties from an options hash.
+        # Sets properties from an options hash.
         #
-        # @param opts [Hash] A hash containing job properties to be set on
-        #   this job.
+        # @param opts [Hash] A hash containing properties to be set on this
+        #   definable.
         def set_from_options(opts)
             unknown = opts.keys - self.class.properties
             if unknown.size > 0
@@ -153,6 +153,8 @@ class Batch
         end
 
 
+        # Add a handler for interrupt (i.e. Ctrl-C etc) signals; this simply
+        # raises an Interrupt exception on the main thread
         trap 'INT' do
             Thread.main.raise Interrupt
         end
