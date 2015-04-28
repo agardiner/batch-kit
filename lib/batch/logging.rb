@@ -164,7 +164,7 @@ class Batch
                     logger = case log_framework
                     when :stdout
                         l = Batch::Logging::StdOutLogger.new(name)
-                        l.log_file = @loggers['batch'].log_file if name != 'batch'
+                        l.log_file = (@loggers['batch'] && @loggers['batch'].log_file) if name != 'batch'
                         l
                     when :java_util_logging
                         Java::JavaUtilLogging::Logger.getLogger(name)
