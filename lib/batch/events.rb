@@ -16,7 +16,7 @@ class Batch
 
 
             def ===(obj)
-                @source.nil? || (@source === obj) ||
+                @source.nil? || (@source == obj) || (@source === obj) ||
                     (obj.respond_to?(:job) && @source === obj.job)
             end
 
