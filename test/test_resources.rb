@@ -16,14 +16,12 @@ Batch::ResourceManager.register(File, :get_file)
 
 Batch::ResourceManager.register(Sequel::Database, :get_db_connection, disposal_method: :disconnect) do |*args|
     Sequel.default_timezone = :utc
+    log.detail "Connecting to database"
     conn = Sequel.connect(*args)
 end
 
-Batch::Events.subscribe(Sequel::Database, 'resource.acquired') do |src, db|
-    puts "Retrieved database connection"
-end
-Batch::Events.subscribe(Sequel::Database, 'resource.disposed') do |src, db|
-    puts "Closed database connection"
+Batch::Events.subscribe(nil, 'resource.disposed') do |rsrc_cls, rsrc|
+    puts "Disposed of #{rsrc_cls} resource"
 end
 
 
@@ -32,6 +30,7 @@ if RUBY_ENGINE == 'jruby'
     require 'ess4r/cube'
     Batch::ResourceManager.register(Essbase::Server, :get_essbase_server,
                                     disposal_method: :disconnect, use_send: true) do |cfg = config|
+        log.detail "Connecting to Essbase as #{cfg.essbase_user} on #{cfg.essbase_server}"
         Essbase.connect(cfg.essbase_user, cfg.essbase_pwd, cfg.essbase_server)
     end
 
@@ -39,6 +38,7 @@ if RUBY_ENGINE == 'jruby'
     Batch::ResourceManager.register(Essbase::Cube, :get_essbase_cube,
                                     disposal_method: :clear_active) do |app, db, cfg = config|
         srv = self.get_essbase_server(cfg)
+        log.detail "Opening Essbase cube #{app}:#{db}"
         cube = srv.open_cube(app, db)
     end
 end
@@ -57,6 +57,7 @@ class TestResources < Minitest::Test
 
     include Batch::ResourceHelper
     include Batch::Configurable
+    include Batch::Loggable
 
     configure File.dirname(__FILE__) + '/connections.yaml'
 
@@ -83,13 +84,15 @@ class TestResources < Minitest::Test
     def test_essbase
         if RUBY_ENGINE == 'jruby'
             ess = get_essbase_server()
+            assert(Essbase::Server, ess)
         end
     end
 
 
     def test_essbase_cube
         if RUBY_ENGINE == 'jruby'
-            ess = get_essbase_cube('Sample', 'Basic')
+            cube = get_essbase_cube('Sample', 'Basic')
+            assert(Essbase::Cube, cube)
         end
     end
 
@@ -99,6 +102,11 @@ class TestResources < Minitest::Test
         assert(@__resources__.size > 0)
         cleanup_resources
         assert_nil(@__resources__)
+    end
+
+
+    def teardown
+        cleanup_resources
     end
 
 end

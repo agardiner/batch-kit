@@ -39,12 +39,6 @@ class Batch
             # @option options [Symbol] :disposal_method The name of the method
             #   to be called on the resource to dispose of it. Defaults to
             #   :close.
-            # @option options [Boolean] :use_send If true, the disposal method
-            #   will be called using #send, rather than by obtaining a reference
-            #   to the method directly. Use this option if the resource class
-            #   does not define the disposal method directly, but handles it
-            #   via #method_missing or some form of delegation (e.g. for native
-            #   Java resources under JRuby).
             def register(rsrc_cls, helper_mthd, options = {}, &body)
                 if resource_types.has_key?(rsrc_cls)
                     raise ArgumentError, "Resource class #{rsrc_cls} is already registered"
@@ -55,10 +49,10 @@ class Batch
                 end
                 disp_mthd = options.fetch(:disposal_method, :close)
 
-                resource_types[rsrc_cls] = case
-                when rsrc_cls.method_defined?(disp_mthd) then rsrc_cls.instance_method(disp_mthd)
-                when options.fetch(:use_send, false) then disp_mthd
-                else raise ArgumentError, "No method named '#{disp_mthd}' is defined on #{rsrc_cls}"
+                if rsrc_cls.method_defined?(disp_mthd)
+                    resource_types[rsrc_cls] = rsrc_cls.instance_method(disp_mthd)
+                else
+                    raise ArgumentError, "No method named '#{disp_mthd}' is defined on #{rsrc_cls}"
                 end
 
                 # Define the helper method on the ResourceHelper module. This is
@@ -149,12 +143,14 @@ class Batch
             rsrc_cls = rsrc.class
             disp_mthd = Batch::ResourceManager.disposal_method(rsrc)
             @__resources__.delete(rsrc)
-            begin
-                disp_mthd.is_a?(Symbol) ? rsrc.send(disp_mthd) : disp_mthd.bind(rsrc).call
-                Batch::Events.publish(rsrc_cls, 'resource.disposed', rsrc)
-            rescue Exception => ex
-                Batch::Events.publish(rsrc_cls, 'resource.disposal_failed', ex)
-                raise
+            if Batch::Events.publish(rsrc_cls, 'resource.pre_disposal', rsrc)
+                begin
+                    disp_mthd.bind(rsrc).call
+                    Batch::Events.publish(rsrc_cls, 'resource.disposed', rsrc)
+                rescue Exception => ex
+                    Batch::Events.publish(rsrc_cls, 'resource.disposal_failed', ex)
+                    raise
+                end
             end
         end
 
@@ -162,7 +158,7 @@ class Batch
         # Dispose of all resources managed by this object.
         def cleanup_resources
             if @__resources__
-                @__resources__.clone.each do |rsrc|
+                @__resources__.clone.reverse_each do |rsrc|
                     dispose_resource(rsrc)
                 end
                 @__resources__ = nil
