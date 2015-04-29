@@ -11,6 +11,8 @@ else
     require 'oci8'
 end
 
+# Register various resource types
+Batch::ResourceManager.register(File, :get_file)
 
 Batch::ResourceManager.register(Sequel::Database, :get_db_connection, disposal_method: :disconnect) do |*args|
     Sequel.default_timezone = :utc
@@ -27,12 +29,16 @@ end
 
 if RUBY_ENGINE == 'jruby'
     require 'ess4r'
-    Batch::ResourceManager.register(Essbase, :get_essbase_server, disposal_method: :disconnect) do |cfg = config|
+    require 'ess4r/cube'
+    Batch::ResourceManager.register(Essbase::Server, :get_essbase_server,
+                                    disposal_method: :disconnect, use_send: true) do |cfg = config|
         Essbase.connect(cfg.essbase_user, cfg.essbase_pwd, cfg.essbase_server)
     end
 
-    Batch::ResourceManager.register(Essbase::Cube, :get_essbase_cube, disposal_method: :clear_active) do |app, db, config = cfg|
-        srv = get_essbase_server(cfg)
+
+    Batch::ResourceManager.register(Essbase::Cube, :get_essbase_cube,
+                                    disposal_method: :clear_active) do |app, db, cfg = config|
+        srv = self.get_essbase_server(cfg)
         cube = srv.open_cube(app, db)
     end
 end
@@ -63,6 +69,12 @@ class TestResources < Minitest::Test
     end
 
 
+    def test_file
+        f = get_file(File.dirname(__FILE__) + '/connections.yaml')
+        assert(File, f.class)
+    end
+
+
     def test_db
         assert('1', db["SELECT '1' Key FROM DUAL"].first[:key])
     end
@@ -70,9 +82,14 @@ class TestResources < Minitest::Test
 
     def test_essbase
         if RUBY_ENGINE == 'jruby'
-            require 'java'
-            require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
-            ess = get_essbase_server(config.batch_db_jdbc)
+            ess = get_essbase_server()
+        end
+    end
+
+
+    def test_essbase_cube
+        if RUBY_ENGINE == 'jruby'
+            ess = get_essbase_cube('Sample', 'Basic')
         end
     end
 

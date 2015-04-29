@@ -1,6 +1,5 @@
-require_relative 'events'
 require 'set'
-require 'jruby/synchronized' if RUBY_ENGINE == 'jruby'
+require_relative 'events'
 
 
 class Batch
@@ -16,9 +15,6 @@ class Batch
 
         class << self
 
-            include JRuby::Synchronized if RUBY_ENGINE == 'jruby'
-
-
             # Returns an unbound method object that represents the method that
             # should be called to dispose of +rsrc+.
             def disposal_method(rsrc)
@@ -28,23 +24,80 @@ class Batch
 
 
             # Register a resource type for automated resource management
-            def register(rsrc_cls, acq_mthd, options = {}, &body)
+            #
+            # @param rsrc_cls [Class] The class of resource to be managed. This
+            #   must be the type of the object that will be returned when an
+            #   instance of this resource is acquired.
+            # @param helper_mthd [Symbol] The name of the resource acquisition
+            #   helper method that should be added to the ResourceHelper module.
+            # @param options [Hash] An options class.
+            # @option options [Symbol] :acquisition_method For cases where an
+            #   existing method can be called directly on the +rsrc_cls+ to
+            #   obtain a resource (rather than passing in a block containing
+            #   resource acquisition steps), the name of that method. Defaults
+            #   to :open.
+            # @option options [Symbol] :disposal_method The name of the method
+            #   to be called on the resource to dispose of it. Defaults to
+            #   :close.
+            # @option options [Boolean] :use_send If true, the disposal method
+            #   will be called using #send, rather than by obtaining a reference
+            #   to the method directly. Use this option if the resource class
+            #   does not define the disposal method directly, but handles it
+            #   via #method_missing or some form of delegation (e.g. for native
+            #   Java resources under JRuby).
+            def register(rsrc_cls, helper_mthd, options = {}, &body)
                 if resource_types.has_key?(rsrc_cls)
                     raise ArgumentError, "Resource class #{rsrc_cls} is already registered"
                 end
-                close_mthd_name = options.fetch(:disposal_method, :close)
-                resource_types[rsrc_cls] = rsrc_cls.instance_method(close_mthd_name)
+                unless body
+                    open_mthd = options.fetch(:acquisition_method, :open)
+                    body = lambda{ |*args| rsrc_cls.send(open_mthd, *args) }
+                end
+                disp_mthd = options.fetch(:disposal_method, :close)
+
+                resource_types[rsrc_cls] = case
+                when rsrc_cls.method_defined?(disp_mthd) then rsrc_cls.instance_method(disp_mthd)
+                when options.fetch(:use_send, false) then disp_mthd
+                else raise ArgumentError, "No method named '#{disp_mthd}' is defined on #{rsrc_cls}"
+                end
+
+                # Define the helper method on the ResourceHelper module. This is
+                # necessary (as opposed to just calling the block from the
+                # acquisition methd) in order to ensure that self etc are set
+                # correctly
+                ResourceHelper.class_eval{ define_method(helper_mthd, &body) }
+
+                # Now wrap an aspect around the method to handle the tracking of
+                # resources acquired, and event notifications
+                add_aspect(rsrc_cls, helper_mthd, disp_mthd)
+                Batch::Events.publish(self, 'resource.registered', rsrc_cls, helper_mthd)
+            end
+
+
+            private
+
+
+            def resource_types
+                @resource_types ||= {}
+            end
+
+
+            def add_aspect(rsrc_cls, helper_mthd, disp_mthd)
+                defn = self
+                mthd = ResourceHelper.instance_method(helper_mthd)
                 ResourceHelper.class_eval do
-                    define_method acq_mthd do |*args|
+                    define_method helper_mthd do |*args|
                         if Batch::Events.publish(rsrc_cls, 'resource.pre_acquire', *args)
                             result = nil
                             begin
-                                result = body.call(*args)
+                                result = mthd.bind(self).call(*args)
                                 unless rsrc_cls === result
-                                    raise ArgumentError, "Returned object is of type #{result.class.name}, not #{rsrc_cls}"
+                                    raise ArgumentError, "Returned object is of type #{
+                                        result.class.name}, not #{rsrc_cls}"
                                 end
-                                # Override close method on this acquired instance to call dispose
-                                result.define_singleton_method(close_mthd_name) do
+                                # Override disposal method on this acquired instance
+                                # to call #dispose_resource instead
+                                result.define_singleton_method(disp_mthd) do
                                     dispose_resource(self)
                                 end
                                 add_resource(result)
@@ -57,15 +110,6 @@ class Batch
                         end
                     end
                 end
-                Batch::Events.publish(self, 'resource.registered', rsrc_cls, acq_mthd)
-            end
-
-
-            private
-
-
-            def resource_types
-                @resource_types ||= {}
             end
 
         end
@@ -106,7 +150,7 @@ class Batch
             disp_mthd = Batch::ResourceManager.disposal_method(rsrc)
             @__resources__.delete(rsrc)
             begin
-                disp_mthd.bind(rsrc).call
+                disp_mthd.is_a?(Symbol) ? rsrc.send(disp_mthd) : disp_mthd.bind(rsrc).call
                 Batch::Events.publish(rsrc_cls, 'resource.disposed', rsrc)
             rescue Exception => ex
                 Batch::Events.publish(rsrc_cls, 'resource.disposal_failed', ex)
