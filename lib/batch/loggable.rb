@@ -13,13 +13,6 @@ class Batch
         end
 
 
-        def register(runnable)
-            Batch::Events.subscribe(runnable, 'execute'){ |run, proc_obj, *args| log_execute(run, proc_obj, *args) }
-            Batch::Events.subscribe(runnable, 'post-execute'){ |run, proc_obj, ok| log_post_execute(run, proc_obj, ok) }
-        end
-        module_function :register
-
-
         def log_execute(run, proc_obj, *args)
             case run
             when Job::Run
@@ -37,8 +30,10 @@ class Batch
         end
         module_function :log_post_execute
 
-        register(Batch::Job::Run)
-        register(Batch::Task::Run)
+
+        Batch::Events.subscribe(Batch::Runnable, 'execute'){ |*args| log_execute(*args) }
+        Batch::Events.subscribe(Batch::Runnable, 'post-execute'){ |*args| log_post_execute(*args) }
+
     end
 
 end
