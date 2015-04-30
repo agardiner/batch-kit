@@ -9,6 +9,8 @@ class Batch
         # Manages the database tables and connection used to record batch processes.
         class Schema
 
+
+            # Create a batch schema instance
             def initialize(options = {})
                 @logger = Batch::LogManager.logger('batch.schema')
                 @logger.level = options.fetch(:log_level, :error)
@@ -139,6 +141,7 @@ class Batch
                     foreign_key :job_run, :batch_job_run
                     Fixnum :log_line, null: false
                     DateTime :log_time, null: false
+                    String :log_name, size: 40, null: true
                     String :log_level, size: 8, null: false
                     String :log_message, size: 1000, null: false
                     primary_key [:job_run, :log_line]

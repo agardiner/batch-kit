@@ -170,9 +170,8 @@ class Batch
                         Java::JavaUtilLogging::Logger.getLogger(name)
                     when :log4r
                         log4r_name = name.gsub('.', '::')
-                        Log4r::Logger[log4r_name] || Log4r::Logger.new(log4r_name)
-                    when :logger
-                        Logger.new(name)
+                        Batch::Logging::Log4rFacade.new(Log4r::Logger[log4r_name] ||
+                                                        Log4r::Logger.new(log4r_name))
                     else Batch::Logging::NullLogger.instance
                     end
                     @loggers[name] = logger

@@ -387,6 +387,26 @@ class Batch
 
         end
 
+
+        # Model for a single log message
+        class JobRunLog < Sequel::Model(:batch_job_run_log)
+
+            unrestrict_primary_key
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+                if job_run.persist? && (logger = job_obj.respond_to?(:log) && job_obj.log)
+                    case LogManager.log_framework
+                    when :log4r
+                        require_relative 'log4r_outputter'
+                        outputter = Log4ROutputter.new(job_run)
+                        logger.add(outputter)
+                    end
+                end
+            end
+        end
+
+
     end
 
 end
