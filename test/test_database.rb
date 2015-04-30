@@ -6,6 +6,9 @@ require 'color_console'
 
 class TestSchema < Test::Unit::TestCase
 
+    Batch::LogManager.configure(log_framework: :log4r)
+
+
     class MyJob < Batch::Job
 
         positional_arg :pos_arg, 'Pos arg', default: 'None'
