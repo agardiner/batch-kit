@@ -2,11 +2,24 @@ require 'test/unit'
 require 'batch/job'
 require 'batch/database'
 require 'color_console'
+require 'sequel'
+if RUBY_ENGINE == 'jruby'
+    require 'java'
+    require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
+else
+    require 'oci8'
+end
 
 
 class TestSchema < Test::Unit::TestCase
 
-    Batch::LogManager.configure(log_framework: :log4r)
+    include Batch::Configurable
+
+    configure File.dirname(__FILE__) + '/connections.yaml'
+
+    Batch::LogManager.configure(log_framework: RUBY_ENGINE == 'jruby' ?
+                                :java_util_logging :
+                                :log4r)
 
 
     class MyJob < Batch::Job
@@ -33,15 +46,11 @@ class TestSchema < Test::Unit::TestCase
 
 
     def setup
-        #@db = Batch::Database.new(log_level: :info)
         @db = Batch::Database.new(log_level: :error)
         if RUBY_ENGINE == 'jruby'
-            require 'java'
-            require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
-            @db.connect('jdbc:oracle:thin:BATCH/b4tch@localhost:1521:ORCL')
+            @db.connect(config.batch_db_jdbc)
         else
-            require 'oci8'
-            @db.connect(adapter: 'oracle', user: 'BATCH', password: 'b4tch')
+            @db.connect(config.batch_db)
         end
     end
 

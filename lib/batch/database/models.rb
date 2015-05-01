@@ -1,5 +1,6 @@
 require 'digest'
 
+
 class Batch
 
     class Database
@@ -397,6 +398,10 @@ class Batch
             Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
                 if job_run.persist? && (logger = job_obj.respond_to?(:log) && job_obj.log)
                     case LogManager.log_framework
+                    when :java_util_logging
+                        require_relative 'java_util_log_handler'
+                        handler = JavaUtilLogHandler.new(job_run)
+                        logger.addHandler(handler)
                     when :log4r
                         require_relative 'log4r_outputter'
                         outputter = Log4ROutputter.new(job_run)
