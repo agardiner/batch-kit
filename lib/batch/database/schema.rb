@@ -141,8 +141,9 @@ class Batch
                     foreign_key :job_run, :batch_job_run
                     Fixnum :log_line, null: false
                     DateTime :log_time, null: false
-                    String :log_name, size: 40, null: true
+                    String :log_name, size: 40, null: false
                     String :log_level, size: 8, null: false
+                    String :thread_id, size: 8, null: true
                     String :log_message, size: 1000, null: false
                     primary_key [:job_run, :log_line]
                 end

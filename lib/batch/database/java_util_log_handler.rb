@@ -45,6 +45,7 @@ class Batch
                         level = event.level
                         begin
                             JobRunLog.new(job_run: @job_run_id, log_line: @log_line,
+                                          thread_id: event.getThreadID,
                                           log_time: Time.at(event.getMillis / 1000.0), log_name: log_name,
                                           log_level: level, log_message: msg).save
                         rescue
