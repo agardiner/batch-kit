@@ -9,11 +9,13 @@ class Batch
         # Manages the database tables and connection used to record batch processes.
         class Schema
 
+            attr_reader :log
+
 
             # Create a batch schema instance
             def initialize(options = {})
-                @logger = Batch::LogManager.logger('batch.schema')
-                @logger.level = options.fetch(:log_level, :error)
+                @log = Batch::LogManager.logger('batch.schema')
+                @log.level = options.fetch(:log_level, :error)
             end
 
 
@@ -24,8 +26,14 @@ class Batch
             def connect(*args)
                 Sequel.default_timezone = :utc
                 @conn = Sequel.connect(*args)
-                @conn.loggers << @logger
+                @conn.loggers << @log
                 @conn.autosequence = true
+
+                create_tables unless deployed?
+
+                # Now include models and perform housekeeping tasks
+                require_relative 'models'
+                perform_housekeeping
             end
 
 
@@ -203,6 +211,29 @@ class Batch
                     DateTime :requested_at, null: false
                     String :requested_by, size: 80, null: false
                     String :email_address, size: 100, null: true
+                end
+            end
+
+
+            # Purges detail records that are older than the retention threshhold
+            def perform_housekeeping
+                # Only do housekeeping once per day
+                #return if @conn.batch_job_run.where{job_start_time > Date.today}.count > 0
+
+                log.info "Performing batch database housekeeping"
+
+                # Abort jobs in Executing state that have not logged for 6+ hours
+                @conn.transaction do
+                    cutoff = Time.now - 6 * 60 *60
+                    exec_jobs = JobRun.where(job_status: 'EXECUTING').map(:job_run)
+                    curr_jobs = JobRunLog.select_group(:job_run).
+                        where(job_run: exec_jobs).having{max(log_time) > cutoff}.map(:job_run)
+                    abort_jobs = JobRun.where(job_run: exec_jobs - curr_jobs).all
+                    if abort_jobs.size > 0
+                        abort_tasks = TaskRun.where(job_run: abort_jobs.map(&:id), task_status: 'EXECUTING')
+                        abort_tasks.each(&:timeout)
+                        abort_jobs.each(&:timeout)
+                    end
                 end
             end
 

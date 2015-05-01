@@ -154,6 +154,12 @@ class Batch
             end
 
 
+            def job_timeout(job_run)
+                self.job_abort_count += 1
+                self.save
+            end
+
+
             Batch::Events.subscribe(Batch::Job::Run, 'pre-execute') do |job_run, job_obj, *args|
                 Job.register(job_run.definition) if job_run.persist?
                 true
@@ -245,6 +251,12 @@ class Batch
             end
 
 
+            def task_timeout(task_run)
+                self.task_abort_count += 1
+                self.save
+            end
+
+
             Batch::Events.subscribe(Batch::Job::Run, 'pre-execute') do |job_run, job_obj, *args|
                 Task.register(job_run.definition) if job_run.persist?
             end
@@ -292,6 +304,17 @@ class Batch
                 self.job_pid = nil
                 self.job_exit_code = job_run.exit_code
                 self.save
+            end
+
+
+            def timeout
+                self.job_end_time = Time.now
+                self.job_status = 'TIMEOUT'
+                self.job_pid = nil
+                self.job_exit_code = -1
+                self.save
+
+                Job[self.job_id].job_timeout(self)
             end
 
 
@@ -358,6 +381,7 @@ class Batch
 
             many_to_one :task, class: Task, key: :task_id
 
+
             def initialize(task_run)
                 super(task_id: task_run.task_id, job_run: task_run.job_run.job_run_id,
                       task_instance: task_run.instance, task_start_time: task_run.start_time,
@@ -379,6 +403,17 @@ class Batch
             end
 
 
+            def timeout
+                self.task_end_time = Time.now
+                self.task_status = 'TIMEOUT'
+                self.task_exit_code = -1
+                self.save
+
+                Task[task_id].task_timeout(self)
+            end
+
+
+
             Batch::Events.subscribe(Batch::Task::Run, 'execute') do |task_run, job_obj, *args|
                 TaskRun.new(task_run).task_start(task_run) if task_run.persist?
             end
@@ -387,6 +422,7 @@ class Batch
             end
 
         end
+
 
 
         # Model for a single log message
