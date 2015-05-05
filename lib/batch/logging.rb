@@ -129,7 +129,7 @@ class Batch
                     end
                     if log_path
                         formatter = Log4r::PatternFormatter.new(pattern: '[%d] %-6l %x %M\r')
-                        outputter = Log4r::FileOutputter.new('file', filename: log_path, level: level,
+                        outputter = Log4r::FileOutputter.new('file', filename: log_path,
                                                              trunc: false, formatter: formatter)
                         logger('').add 'file'
                     end
