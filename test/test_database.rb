@@ -5,7 +5,7 @@ require 'color_console'
 require 'sequel'
 if RUBY_ENGINE == 'jruby'
     require 'java'
-    require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
+    #require 'ojdbc6.jar'
 else
     require 'oci8'
 end
@@ -47,11 +47,7 @@ class TestSchema < Test::Unit::TestCase
 
     def setup
         @db = Batch::Database.new(log_level: :error)
-        if RUBY_ENGINE == 'jruby'
-            @db.connect(config.batch_db_jdbc)
-        else
-            @db.connect(config.batch_db)
-        end
+        @db.connect(config.batch_db)
     end
 
 

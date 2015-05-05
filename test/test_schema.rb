@@ -1,20 +1,19 @@
 require 'test/unit'
+require 'batch/configurable'
 require 'batch/database/schema'
 require 'color_console'
 
 
 class TestSchema < Test::Unit::TestCase
 
+    include Batch::Configurable
+    
+    configure File.dirname(__FILE__) + '/connections.yaml'
+
+    
     def setup
         @schema = Batch::Database::Schema.new
-        if RUBY_ENGINE == 'jruby'
-            require 'java'
-            require 'C:/oracle/product/11.2.0/dbhome_1/jdbc/lib/ojdbc6.jar'
-            @schema.connect('jdbc:oracle:thin:BATCH/b4tch@localhost:1521:ORCL')
-        else
-            require 'oci8'
-            @schema.connect(adapter: 'oracle', user: 'BATCH', password: 'b4tch')
-        end
+        @schema.connect(config.batch_db)
     end
 
     def test_create_schema
