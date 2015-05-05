@@ -34,35 +34,31 @@ class Batch
     # and/or String/Symbol class.
     class Config < Hash
 
-        # Process a property file, returning its contents as a Hash.
-        # Only lines of the form KEY=VALUE are processed, and # indicates the start
-        # of a comment. Property files can contain sections, denoted by [SECTION].
+        # Create a new Config object, and initialize it from the specified
+        # +file+.
         #
-        # @example
-        #   If a properties file contains the following:
-        #
-        #     FOO=Bar             # This is a comment
-        #     BAR=${FOO}\Baz
-        #
-        #     [BAT]
-        #     Car=Ford
-        #
-        #   Then we would return a Config object containing the following:
-        #
-        #     {'FOO' => 'Bar', 'BAR' => 'Bar\Baz', 'BAT' => {'Car' => 'Ford'}}
-        #
-        #   This config content could be accessed via #[] or as properties of
-        #   the Config object, e.g.
-        #
-        #     cfg[:foo]    # => 'Bar'
-        #     cfg.bar      # => 'Bar\Baz'
-        #     cfg.bat.car  # => 'Ford'
-        #
-        # @param prop_file [String] A path to the properties file to be parsed.
-        # @return [Hash] The parsed contents of the file as a Hash.
-        def self.load_properties(prop_file)
+        # @param file [String] A path to a properties or YAML file to load.
+        # @param props [Hash, Config] An optional Hash (or Config) object to
+        #   seed this Config object with.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] :raise_on_unknown_var Whether to raise an
+        #   error if an unrecognised placeholder variable is encountered in the
+        #   file.
+        # @option options [Boolean] :use_erb If true, the contents of +file+
+        #   is first run through ERB.
+        # @return [Config] A new Config object populated from +file+ and
+        #   +props+, where placeholder variables have been expanded.
+        def self.load(file, props = nil, options = {})
+            cfg = self.new(props, options)
+            cfg.load(file, options)
+            cfg
+        end
+
+
+        # Converts a +str+ in the form of a properties file into a Hash.
+        def self.properties_to_hash(str)
             hsh = props = {}
-            IO.foreach prop_file do |line|
+            str.each_line do |line|
                 line.chomp!
                 if match = /^\s*\[([A-Za-z0-9_ ]+)\]\s*$/.match(line)
                     # Section heading
@@ -81,33 +77,6 @@ class Batch
                 end
             end
             hsh
-        end
-
-
-        # Load the YAML file at +yaml_file+.
-        #
-        # @param yaml_file [String] A path to a YAML file to be loaded.
-        # @return The results of parsing the YAML contents of +yaml_file+.
-        def self.load_yaml(yaml_file)
-            require 'yaml'
-            YAML.load(IO.read(yaml_file))
-        end
-
-
-        # Create a new Config object, and initialize it from the specified
-        # +file+.
-        #
-        # @param file [String] A path to a properties or YAML file to load.
-        # @param props [Hash, Config] An optional Hash (or Config) object to
-        #   seed this Config object with.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an error if an
-        #   unrecognised placeholder variable is encountered in the file.
-        # @return [Config] A new Config object populated from +file+ and
-        #   +props+, where placeholder variables have been expanded.
-        def self.load(file, props = nil, raise_on_unknown_var = true)
-            cfg = self.new(props, raise_on_unknown_var)
-            cfg.load(file, raise_on_unknown_var)
-            cfg
         end
 
 
@@ -138,7 +107,7 @@ class Batch
                 when src = chain.find{ |props| props.has_key?($1.downcase.intern) } then src[$1.downcase.intern]
                 when ENV[$1] then ENV[$1]
                 when raise_on_unknown_var
-                    raise KeyError, "No value supplied for placeholder variable #{$&}"
+                    raise KeyError, "No value supplied for placeholder variable '#{$&}'"
                 else
                     $&
                 end
@@ -149,13 +118,12 @@ class Batch
         # Create a Config object, optionally initialized from +hsh+.
         #
         # @param hsh [Hash] An optional Hash to seed this Config object with.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an exception if
-        #   an unrecognised placeholder variable is encountered in +hsh+.
-        def initialize(hsh = nil, raise_on_unknown_var = true)
+        # @param options [Hash] An options hash.
+        def initialize(hsh = nil, options = {})
             super(nil)
             @lookup_keys = {}
             @decryption_key = nil
-            merge!(hsh, raise_on_unknown_var) if hsh
+            merge!(hsh, options) if hsh
         end
 
 
@@ -166,26 +134,84 @@ class Batch
         #   loaded.
         # @param raise_on_unknown_var [Boolean] Whether to raise an error if an
         #   unrecognised placeholder variable is encountered in the file.
-        def load(path, raise_on_unknown_var = true)
+        def load(path, options = {})
             props = case File.extname(path)
-            when /\.yaml/i then self.class.load_yaml(path)
-            else self.class.load_properties(path)
+            when /\.yaml/i then self.load_yaml(path, options)
+            else self.load_properties(path, options)
             end
-            self.merge!(props, raise_on_unknown_var)
+        end
+
+
+        # Process a property file, returning its contents as a Hash.
+        # Only lines of the form KEY=VALUE are processed, and # indicates the start
+        # of a comment. Property files can contain sections, denoted by [SECTION].
+        #
+        # @example
+        #   If a properties file contains the following:
+        #
+        #     FOO=Bar             # This is a comment
+        #     BAR=${FOO}\Baz
+        #
+        #     [BAT]
+        #     Car=Ford
+        #
+        #   Then we would return a Config object containing the following:
+        #
+        #     {'FOO' => 'Bar', 'BAR' => 'Bar\Baz', 'BAT' => {'Car' => 'Ford'}}
+        #
+        #   This config content could be accessed via #[] or as properties of
+        #   the Config object, e.g.
+        #
+        #     cfg[:foo]    # => 'Bar'
+        #     cfg.bar      # => 'Bar\Baz'
+        #     cfg.bat.car  # => 'Ford'
+        #
+        # @param prop_file [String] A path to the properties file to be parsed.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] :use_erb If true, the contents of +prop_file+
+        #   is first passed through ERB before being processed. This allows for
+        #   the use of <% %> and <%= %> directives in +prop_file+. The binding
+        #   passed to ERB is this Config object. If not specified, ERB is used
+        #   if the file is found to contain the string '<%'.
+        # @return [Hash] The parsed contents of the file as a Hash.
+        def load_properties(prop_file, options = {})
+            str = read_file(prop_file, options)
+            hsh = self.class.properties_to_hash(str)
+            self.merge!(hsh, options)
+        end
+
+
+        # Load the YAML file at +yaml_file+.
+        #
+        # @param yaml_file [String] A path to a YAML file to be loaded.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] :use_erb If true, the contents of +yaml_file+
+        #   are run through ERB before being parsed as YAML. This allows for use
+        #   of <% %> and <%= %> directives in +yaml_file+. The binding passed to
+        #   ERB is this Config object. If not specified, ERB is used if the file
+        #   is found to contain the string '<%'.
+        # @return [Object] The results of parsing the YAML contents of +yaml_file+.
+        def load_yaml(yaml_file, options = {})
+            require 'yaml'
+            str = read_file(yaml_file, options)
+            yaml = YAML.load(str)
+            self.merge!(yaml, options)
         end
 
 
         # Merge the contents of the specified +hsh+ into this Config object.
         #
         # @param hsh [Hash] The Hash object to merge into this Config object.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an exception if
-        #   an unrecognised placeholder variable is encountered in +hsh+.
-        def merge!(hsh, raise_on_unknown_var = true)
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] :raise_on_unknown_var Whether to raise an
+        #   exception if an unrecognised placeholder variable is encountered in
+        #   +hsh+.
+        def merge!(hsh, options = {})
             if hsh && !hsh.is_a?(Hash)
                 raise ArgumentError, "Only Hash objects can be merged into Config (got #{hsh.class.name})"
             end
             hsh && hsh.each do |key, val|
-                self[key] = convert_val(val, raise_on_unknown_var)
+                self[key] = convert_val(val, options[:raise_on_unknown_var])
             end
             if hsh.is_a?(Config)
                 @decryption_key = hsh.instance_variable_get(:@decryption_key) unless @decryption_key
@@ -201,9 +227,9 @@ class Batch
         #   an unrecognised placeholder variable is encountered in +hsh+.
         # @return A new Config object with the combined contents of this Config
         #   object plus the contents of +hsh+.
-        def merge(hsh, raise_on_unknown_var = true)
+        def merge(hsh, options = {})
             cfg = self.dup
-            cfg.merge!(hsh, raise_on_unknown_var)
+            cfg.merge!(hsh, options)
             cfg
         end
 
@@ -355,6 +381,20 @@ class Batch
 
 
         private
+
+
+        # Reads the contents of +file+ into a String. The +file+ is passed 
+        # through ERB if the :use_erb option is true, or if the options does
+        # not contain the :use_erb key and the file does contain the string
+        # '<%'.
+        def read_file(file, options)
+            str = IO.read(file)
+            if (options.has_key?(:use_erb) && options[:use_erb]) || str =~ /<%/
+                require 'erb'
+                str = ERB.new(str).result
+            end
+            str
+        end
 
 
         # Convert the supplied key to a lower-case symbol representation, which

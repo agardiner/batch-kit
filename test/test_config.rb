@@ -46,7 +46,8 @@ class TestConfig < Test::Unit::TestCase
 
 
     def test_properties
-        hsh = Batch::Config.load_properties("#{DIR}/test_config.properties")
+        str = IO.read("#{DIR}/test_config.properties")
+        hsh = Batch::Config.properties_to_hash(str)
         assert_equal('Top', hsh['TOP_LEVEL_PROPERTY'])
         assert_equal(Hash, hsh['SECTION_TEST'].class)
         assert_equal('One', hsh['SECTION_TEST']['PROP1'])
