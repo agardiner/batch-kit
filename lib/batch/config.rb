@@ -286,7 +286,7 @@ class Batch
                         val = self[key]
                         self[key] = val
                     end
-                    if convert_key(key) =~ key_pat
+                    if val.is_a?(String) && convert_key(key) =~ key_pat
                         self[key] = "!AES:#{Encryption.encrypt(master_key, val).strip}!"
                     end
                 end
