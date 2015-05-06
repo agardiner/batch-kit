@@ -199,6 +199,17 @@ class Batch
         end
 
 
+        # Save this config object as a YAML file at +yaml_file+.
+        #
+        # @param yaml_file [String] A path to the YAML file to be saved.
+        # @param options [Hash] An options hash.
+        def save_yaml(yaml_file, options = {})
+            require 'yaml'
+            str = self.to_yaml
+            File.open(yaml_file, 'wb'){ |f| f.puts(str) }
+        end
+
+
         # Merge the contents of the specified +hsh+ into this Config object.
         #
         # @param hsh [Hash] The Hash object to merge into this Config object.
@@ -246,18 +257,57 @@ class Batch
             end
             @decryption_key = key
         end
+        alias_method :encryption_key=, :decryption_key=
+
+
+        # Recursively encrypts the values of all keys in this Config object that
+        # match +key_pat+.
+        #
+        # Note: +key_pat+ will be compared against the standardised key values of
+        # each object (i.e. lowercase, with spaces converted to _).
+        #
+        # @param key_pat [Regexp|String] A regular expression to be used to identify
+        #   the keys that should be encrypted, e.g. /password/ would encrypt all
+        #   values that have "password" in their key.
+        # @param master_key [String] The master key that should be used when
+        #   encrypting. If not specified, uses the current value of the
+        #   +decryption_key+ set for this Config object.
+        def encrypt(key_pat, master_key = @decryption_key)
+            key_pat = Regexp.new(key_pat, true) if key_pat.is_a?(String)
+            raise ArgumentError, "key_pat must be a Regexp or String" unless key_pat.is_a?(Regexp)
+            raise ArgumentError, "No master key has been set or passed" unless master_key
+            require_relative 'encryption'
+            self.each do |key, val|
+                if Config === val
+                    val.encrypt(key_pat, master_key)
+                else
+                    if @decryption_key && val.is_a?(String) && val =~ /!AES:([a-zA-Z0-9\/+=]+)!/
+                        # Decrypt using old master key
+                        val = self[key]
+                        self[key] = val
+                    end
+                    if convert_key(key) =~ key_pat
+                        self[key] = "!AES:#{Encryption.encrypt(master_key, val).strip}!"
+                    end
+                end
+            end
+            @decryption_key = master_key
+        end
 
 
         # Override #[] to be agnostic as to the case of the key, and whether it
         # is a String or a Symbol.
         def [](key)
             key = @lookup_keys[convert_key(key)]
-            val = super key
+            val = super(key)
             if @decryption_key && val.is_a?(String) && val =~ /!AES:([a-zA-Z0-9\/+=]+)!/
-                Encryption.decrypt(@decryption_key, $1)
-            else
-                val
+                begin
+                    val = Encryption.decrypt(@decryption_key, $1)
+                rescue Exception => ex
+                    raise ex.class, "An error occurred while decrypting the value for key '#{key}': #{ex.message}"
+                end
             end
+            val
         end
 
 

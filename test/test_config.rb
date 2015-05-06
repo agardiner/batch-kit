@@ -1,5 +1,6 @@
 require 'test/unit'
 require 'batch/config'
+require 'fileutils'
 
 
 class TestConfig < Test::Unit::TestCase
@@ -75,6 +76,43 @@ class TestConfig < Test::Unit::TestCase
         assert_equal('!AES:6BLBRr54rJ3q2wxOujo0yUtocZNgub7xH1belKLRANQ=!', cfg.secret.password)
         cfg.decryption_key = KEY
         assert_equal('foo', cfg.secret.password)
+    end
+
+
+    def test_encryption
+        master_key = 'AxY^tIPd$'
+        cfg = Batch::Config.new(user_id: 'test', password: 'A secret',
+                                ess_user: 'admin', ess_pwd: 'Another secret')
+        cfg.encryption_key = master_key
+        cfg.encrypt('password')
+        assert_equal('test', cfg[:user_id])
+        assert_equal('A secret', cfg['Password'])
+        assert_equal('Another secret', cfg['Ess Pwd'])
+        cfg.encryption_key = nil
+        assert_equal('test', cfg[:user_id])
+        assert_not_equal('A secret', cfg[:password])
+        assert_equal('Another secret', cfg['Ess Pwd'])
+
+        cfg.encryption_key = master_key
+        cfg.encrypt(/password|pwd/i, 'Foo')
+        assert_equal('A secret', cfg['Password'])
+        assert_equal('Another secret', cfg['Ess Pwd'])
+        cfg.encryption_key = nil
+        assert_not_equal('A secret', cfg['Password'])
+        assert_not_equal('Another secret', cfg['Ess Pwd'])
+    end
+
+
+    def test_save_yaml
+        cfg_props = Batch::Config.load("#{DIR}/test_config.properties")
+        out_file = "#{DIR}/config.yaml"
+        cfg_props.save_yaml(out_file)
+        assert(File.exists?(out_file))
+        cfg = Batch::Config.load(out_file)
+        cfg_props.each do |k, v|
+            assert_equal(cfg_props[k], cfg[k])
+        end
+        FileUtils.rm_f(out_file)
     end
 
 end
