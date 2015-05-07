@@ -11,12 +11,13 @@ class TestLocking < Test::Unit::TestCase
     def setup
         @locks = {}
         Batch::Events.subscribe(self, 'lock?') do |requestor, lock_name, lock_timeout|
-            puts "Lock request received for #{lock_name}"
+            #puts "Lock request received for #{lock_name}"
             if @locks[lock_name] == nil || @locks[lock_name][:expires] < Time.now
                 @locks[lock_name] = {holder: requestor, expires: Time.now + lock_timeout}
             end
         end
-        Batch::Events.subscribe(self, 'unlock') do |requestor, lock_name|
+        Batch::Events.subscribe(self, 'unlock?') do |requestor, lock_name|
+            #puts "Unlock request received for #{lock_name}"
             assert_equal(requestor, @locks[lock_name][:holder])
             @locks.delete(lock_name)
         end
@@ -25,7 +26,7 @@ class TestLocking < Test::Unit::TestCase
 
     def teardown
         Batch::Events.unsubscribe(self, 'lock?')
-        Batch::Events.unsubscribe(self, 'unlock')
+        Batch::Events.unsubscribe(self, 'unlock?')
     end
 
 
@@ -53,7 +54,7 @@ class TestLocking < Test::Unit::TestCase
     def test_wait_timeout
         lock('test_wait_timeout', 5)
         assert_raises(Timeout::Error) do
-            lock('test_wait_timeout', 3, 1)
+            lock('test_wait_timeout', 1, 1)
         end
     end
 

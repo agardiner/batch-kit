@@ -431,20 +431,76 @@ class Batch
             unrestrict_primary_key
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
-                if job_run.persist? && (logger = job_obj.respond_to?(:log) && job_obj.log)
-                    case LogManager.log_framework
-                    when :java_util_logging
-                        require_relative 'java_util_log_handler'
-                        handler = JavaUtilLogHandler.new(job_run)
-                        logger.addHandler(handler)
-                    when :log4r
-                        require_relative 'log4r_outputter'
-                        outputter = Log4ROutputter.new(job_run)
-                        logger.add(outputter)
-                    end
+            def self.install_log_handler(job_run, logger)
+                case LogManager.log_framework
+                when :java_util_logging
+                    require_relative 'java_util_log_handler'
+                    handler = JavaUtilLogHandler.new(job_run)
+                    logger.addHandler(handler)
+                when :log4r
+                    require_relative 'log4r_outputter'
+                    outputter = Log4ROutputter.new(job_run)
+                    logger.add(outputter)
                 end
             end
+
+
+            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+                if job_run.persist? && (logger = job_obj.respond_to?(:log) && job_obj.log)
+                    JobRunLog.install_log_handler(job_run, logger)
+                end
+            end
+        end
+
+
+
+        # Model for a lock
+        class Lock < Sequel::Model(:batch_lock)
+
+            unrestrict_primary_key
+
+
+            def self.lock?(job_obj, lock_name, lock_timeout)
+                lock_expires_at = nil
+                self.transaction do
+                    lock_rec = self.where(lock_name: lock_name).first
+                    if lock_rec
+                        if lock_rec.lock_expires_at > Time.now
+                            self.where(lock_name).delete
+                            lock_rec = nil
+                        end
+                    end
+                    if lock_rec.nil?
+                        lock_expires_at = Time.now + lock_timeout
+                        if job_obj.job_run.persist?
+                            self.new(lock_name: lock_name, job_run: job_obj.job_run.job_run_id,
+                                     lock_created_at: Time.now,
+                                     lock_expires_at: lock_expires_at).save
+                        end
+                    end
+                end
+                lock_expires_at
+            end
+
+
+            def self.unlock?(job_obj, lock_name)
+                unlocked = false
+                if job_obj.job_run.persist?
+                    self.where(lock_name: lock_name,
+                               job_run: job_obj.job_run.job_run_id).delete
+                    unlocked = true
+                end
+                unlocked
+            end
+
+
+            Batch::Events.subscribe(ActsAsJob, 'lock?') do |job_obj, lock_name, lock_timeout|
+                Lock.lock?(job_obj, lock_name, lock_timeout)
+            end
+            Batch::Events.subscribe(ActsAsJob, 'unlock?') do |job_obj, lock_name|
+                Lock.unlock?(job_obj, lock_name)
+            end
+
         end
 
 

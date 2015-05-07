@@ -50,7 +50,7 @@ class Batch
             end
             unless Batch::Events.has_subscribers?(self, 'lock?')
                 if self.respond_to?(:log)
-                    log.detail "No lock manager available; proceeding without locking"
+                    log.warn "No lock manager available; proceeding without locking"
                 end
                 return
             end
@@ -65,24 +65,14 @@ class Batch
                         break if lock_expire_time
                         if i == 0
                             Batch::Events.publish(self, 'lock_wait', lock_name, wait_expire_time)
-                            if self.respond_to?(:log)
-                                log.detail "Waiting for lock '#{lock_name}' to become avaialable"
-                            end
                         end
                         sleep 1
                         i += 1
                     end
                     Batch::Events.publish(self, 'locked', lock_name, lock_expire_time)
-                    if self.respond_to?(:log)
-                        log.detail "Obtained lock '#{lock_name}'; expires at #{
-                            lock_expire_time.strftime('%H:%M:%S')}"
-                    end
                 end
             rescue Timeout::Error
                 Batch::Events.publish(self, 'lock_wait_timeout', lock_name, wait_expire_time)
-                if self.respond_to?(:log)
-                    log.error "Timed out waiting for lock '#{lock_name}' to become available"
-                end
                 raise
             end
         end
@@ -92,16 +82,11 @@ class Batch
         #
         # @param lock_name [String] The name of the lock to be released.
         def unlock(lock_name)
-            unless Batch::Events.has_subscribers?(self, 'unlock')
+            unless Batch::Events.has_subscribers?(self, 'unlock?')
                 return
             end
-            resp = Batch::Events.publish(self, 'unlock', lock_name)
-            if self.respond_to?(:log)
-                if resp
-                    log.detail "Released lock '#{lock_name}'"
-                else
-                    log.warn "Unlock failed - lock not held; check lock timeout is sufficient"
-                end
+            if Batch::Events.publish(self, 'unlock?', lock_name)
+                Batch::Events.publish(self, 'unlocked', lock_name)
             end
         end
 
@@ -126,6 +111,23 @@ class Batch
                 yield
             ensure
                 self.unlock(lock_name)
+            end
+        end
+
+
+        if defined?(ActsAsJob)
+            Batch::Events.subscribe(ActsAsJob, 'lock_wait') do |job_obj|
+                job_obj.log.detail "Waiting for lock '#{lock_name}' to become avaialable"
+            end
+            Batch::Events.subscribe(ActsAsJob, 'lock_wait_timeout') do |job_obj, lock_name|
+                job_obj.log.error "Timed out waiting for lock '#{lock_name}' to become available"
+            end
+            Batch::Events.subscribe(ActsAsJob, 'locked') do |job_obj, lock_name, lock_expire_time|
+                job_obj.log.detail "Obtained lock '#{lock_name}'; expires at #{
+                    lock_expire_time.strftime('%H:%M:%S')}"
+            end
+            Batch::Events.subscribe(ActsAsJob, 'unlocked') do |job_obj, lock_name|
+                job_obj.log.detail "Released lock '#{lock_name}'"
             end
         end
 
