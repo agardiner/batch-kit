@@ -117,9 +117,9 @@ class Batch
 
 
         # Hook used to extend the including class with class methods defined in
-        # the Job ClassMethods module.
+        # the ActsAsJob::ClassMethods module.
         #
-        # Creates a JobDefinition object to hold details of the job, and stores
+        # Creates a Job::Definition object to hold details of the job, and stores
         # it away in a @__job__ class instance variable.
         def self.included(base)
             base.extend(ClassMethods)
@@ -130,13 +130,13 @@ class Batch
         end
 
 
-        # @return [JobDefinition] The JobDefinition for this job instance.
+        # @return [Job::Definition] The JobDefinition for this job instance.
         def job
             self.class.job_definition
         end
 
 
-        # @return [JobRun] The JobRun for this job instance.
+        # @return [Job::Run] The JobRun for this job instance.
         def job_run
             @__job_run__
         end
