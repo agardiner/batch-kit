@@ -54,16 +54,16 @@ class Batch
             #   run relates.
             # @param job_object [Object] The job object instance from which the
             #   job is being executed.
-            # @param run_arg [] ???
+            # @param run_arg [Array<Object>] An array of the argument values
+            #   passed to the job method.
             def initialize(job_def, job_object, *run_args)
                 raise ArgumentError unless job_def.is_a?(Job::Definition)
-                instance = eval_instance_expr(job_def.instance_expr, job_object, run_args)
                 @run_by = Etc.getlogin
                 @cmd_line = "#{$0} #{ARGV.map{ |s| s =~ / |^\*$/ ? %Q{"#{s}"} : s }.join(' ')}".strip
                 @pid = ::Process.pid
                 @task_runs = []
                 @job_args = job_object.arguments if job_object.respond_to?(:arguments)
-                super(job_def, instance)
+                super(job_def, job_object, run_args)
             end
 
 

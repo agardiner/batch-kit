@@ -15,7 +15,8 @@ class Batch
 
             # Add delegates for each specified property in +props+.
             def add_delegated_properties(*props)
-                def_delegators :@definition, *props
+                del_props = props.reject{ |prop| self.methods.include?(prop) }
+                def_delegators :@definition, *del_props
             end
 
         end
@@ -43,14 +44,29 @@ class Batch
         attr_reader :exit_code
         # Exception thrown that caused process to fail
         attr_accessor :exception
+        # Name of any exclusive lock needed by this run
+        attr_reader :lock_name
+        # Number of seconds before the lock times out
+        attr_reader :lock_timeout
+        # Number of seconds to wait for the lock to be released before giving up
+        attr_reader :lock_wait_timeout
 
 
 
         # Sets the state of the runnable to :initialized.
-        def initialize(definition, instance)
+        def initialize(definition, obj, run_args)
             @definition = definition
-            @instance = instance
+            @instance = eval_property_expr(definition.instance, obj, run_args)
             @status = :initialized
+            @lock_name = eval_property_expr(definition.lock_name, obj, run_args)
+            @lock_timeout = case definition.lock_timeout
+                when Fixnum then definition.lock_timeout
+                when String then eval_property_expr(definition.lock_timeout, obj, run_args, :to_i)
+            end
+            @lock_wait_timeout = case definition.lock_wait_timeout
+                when Fixnum then definition.lock_wait_timeout
+                when String then eval_property_expr(definition.lock_wait_timeout, obj, run_args, :to_i)
+            end
             Batch::Events.publish(self, 'initialized')
         end
 
@@ -165,29 +181,32 @@ class Batch
         private
 
 
-        # Replaces placeholder expressions in an instance_expr to return an
-        # instance value for a job, task, etc.
+        # Replaces placeholder expressions in a property expression to return a
+        # property value for a job, task, etc.
         #
-        # @param instance_expr [String] The instance expression to be evaluated.
+        # @param property_expr [String] The expression to be evaluated.
         # @param instance_obj [Object] The object against which Ruby expressions
-        #   in the instance_expr will be evaluated.
+        #   in the property_expr will be evaluated.
         # @param run_args [Array<Object>] An array of arguments passed to the
         #   method used to execute the job, task, etc.
-        # @return [String] An instance value to identify this instance of the
-        #   run.
-        def eval_instance_expr(instance_expr, instance_obj, run_args)
-            if instance_expr
+        # @param conv_mthd [Symbol] The optional name of a method to call on the
+        #   result String to convert it to another type (Fixnum, Symbol, etc)
+        # @return [Object] The evaluated property value for this run.
+        def eval_property_expr(property_expr, instance_obj, run_args, conv_mthd = nil)
+            if property_expr
+                raise ArgumentError, "property_expr must be a String" unless property_expr.is_a?(String)
                 # Replace references to run arguments (i.e. ${0} to ${9}) first...
-                instance = instance_expr.gsub(/(?:\$|%)\{([0-9])\}/) do
+                property = property_expr.gsub(/(?:\$|%)\{([0-9])\}/) do
                     val = run_args[$1.to_i]
                     val.is_a?(Array) ? val.join(', ') : val
                 end
                 # ... then evaluate any remaining expressions between ${} or %{}
-                instance.gsub!(/(?:\$|%)\{([^\}]+)\}/) do
+                property.gsub!(/(?:\$|%)\{([^\}]+)\}/) do
                     val = instance_obj.instance_eval($1)
                     val.is_a?(Array) ? val.join(', ') : val
                 end
-                instance = instance.length > 0 ? instance : nil
+                property = property.length > 0 ?
+                    (conv_mthd ? property.send(conv_mthd) : property) : nil
             end
         end
 

@@ -1,6 +1,7 @@
 require 'batch/arguments'
 require 'batch/configurable'
 require 'batch/loggable'
+require 'batch/lockable'
 
 
 # Default log level is :detail
@@ -14,6 +15,7 @@ class Batch
         include Arguments
         include Configurable
         include Loggable
+        include Lockable
 
 
         # Include ActsAsJob into any inheriting class

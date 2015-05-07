@@ -41,15 +41,14 @@ class Batch
         # @!attribute :name [String] A user-friendly name for this process.
         # @!attribute :description [String] A short description of what this
         #   process does.
-        # @!attribute :instance_expr [String] An optional expression used to
-        #   assign an instance identifier to a process.
+        # @!attribute :instance [String] An optional expression used to assign
+        #   an instance identifier to a process.
         #   An instance identifier allows a process that has different execution
         #   profiles (typically depending on the arguments it is run with)
         #   to identify which of those profiles it is executing. This expression
         #   will be evaluated at the time this process is invoked, and the
         #   result will become the instance identifier for the Runnable.
         # @!attribute :runs [Array<Runnable>] Array of runs of this process.
-        #
         # @!attribute :lock_name [String] The name of any lock that this
         #   process requires before it can proceed. If nil, no lock is
         #   required and the process can commence without any co-ordination
@@ -61,8 +60,8 @@ class Batch
         #   run of this process is likely to take, but no longer.
         # @!attribute :lock_wait_timeout [Fixnum] Number of seconds before
         #   this process will give up waiting for a lock to become available.
-        add_properties(:name, :description, :instance_expr, :runs,
-            :lock, :lock_timeout, :lock_wait_timeout
+        add_properties(:name, :description, :instance, :runs,
+            :lock_name, :lock_timeout, :lock_wait_timeout
         )
 
 
