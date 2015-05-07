@@ -29,12 +29,13 @@ class TestActsAsJob < Test::Unit::TestCase
     def test_including_class_gets_delegated_properties
         assert_equal(File.realpath(__FILE__), JobA.job.file)
         assert_equal(Socket.gethostname, JobA.job.computer)
-        assert_equal('TestJob::JobA', JobA.job.name)
+        assert_equal('TestActsAsJob::JobA', JobA.job.job_class.name)
         JobA.job.name = 'Job A'
         assert_equal('Job A', JobA.job.name)
     end
 
     def test_including_class_instances_gets_delegated_properties
+        JobA.job.name = 'Job A'
         job_a = JobA.new
         assert_equal(File.realpath(__FILE__), job_a.job.file)
         assert_equal(Socket.gethostname, job_a.job.computer)
@@ -69,12 +70,12 @@ class TestActsAsJob < Test::Unit::TestCase
 
 
     def test_set_job_options
-        JobB.job :run_job, instance_expr: 'An $1 expression', lock: 'Foo' do
+        JobB.job :run_job, instance: 'An $1 expression', lock_name: 'Foo' do
             puts 'Running'
         end
         assert_equal(:run_job, JobB.job.method_name)
-        assert_equal('Foo', JobB.job.lock)
-        assert_equal('An $1 expression', JobB.job.instance_expr)
+        assert_equal('Foo', JobB.job.lock_name)
+        assert_equal('An $1 expression', JobB.job.instance)
     end
 
 
@@ -173,13 +174,6 @@ class TestActsAsJob < Test::Unit::TestCase
 
         assert_raise(NoMethodError) { job_d.execute(:task4, 1) }
         assert_nothing_raised{ job_d.execute(:task4, 1) {} }
-    end
-
-    def test_logging
-        require 'batch/framework/loggable'
-        Batch::Loggable.register(Batch::Job::Run)
-        Batch::Loggable.register(Batch::Task::Run)
-        JobC.new.foo
     end
 
 end

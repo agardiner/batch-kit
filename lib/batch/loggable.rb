@@ -14,18 +14,22 @@ class Batch
 
 
         Batch::Events.subscribe(Batch::Runnable, 'execute') do |run, proc_obj, *args|
-            case run
-            when Job::Run
-                proc_obj.log.info "Job '#{run.label}' started on #{run.computer} by #{run.run_by}"
-            else
-                proc_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' started"
+            if proc_obj.is_a?(Loggable)
+                case run
+                when Job::Run
+                    proc_obj.log.info "Job '#{run.label}' started on #{run.computer} by #{run.run_by}"
+                else
+                    proc_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' started"
+                end
             end
         end
 
 
         Batch::Events.subscribe(Batch::Runnable, 'post-execute') do |run, proc_obj, ok|
-            proc_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
-                    ok ? 'successfully' : 'with errors'} in #{run.elapsed} seconds"
+            if proc_obj.is_a?(Loggable)
+                proc_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
+                        ok ? 'successfully' : 'with errors'} in #{run.elapsed} seconds"
+            end
         end
 
     end
