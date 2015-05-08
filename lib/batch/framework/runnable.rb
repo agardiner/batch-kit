@@ -11,6 +11,11 @@ class Batch
         # across all runs.
         extend Forwardable
 
+        # Add locking functionality for obtaining a lock during execution of a
+        # Runnable
+        include Lockable
+
+
         class << self
 
             # Add delegates for each specified property in +props+.
@@ -24,6 +29,8 @@ class Batch
 
         # The definition object for this runnable
         attr_reader :definition
+        # The object instance that is running this runnable
+        attr_reader :object
         # The instance qualifier for this runnable, if it has an instance
         # qualifier.
         attr_reader :instance
@@ -56,6 +63,7 @@ class Batch
         # Sets the state of the runnable to :initialized.
         def initialize(definition, obj, run_args)
             @definition = definition
+            @object = obj
             @instance = eval_property_expr(definition.instance, obj, run_args)
             @status = :initialized
             @lock_name = eval_property_expr(definition.lock_name, obj, run_args)
@@ -114,13 +122,17 @@ class Batch
         # @param args [*Object] Any arguments passed to the method that is
         #   executing the process.
         # @yield at the point when the process should execute.
-        def around_execute(process_obj, *args)
+        def around_execute(process_obj, *args, &blk)
             @start_time = Time.now
             @status = :executing
             @exit_code = nil
             Batch::Events.publish(self, 'execute', process_obj, *args)
             begin
-                yield
+                if @lock_name
+                    self.with_lock(@lock_name, @lock_timeout, @lock_wait_timeout, &blk)
+                else
+                    yield
+                end
             ensure
                 @end_time = Time.now
             end
@@ -175,6 +187,7 @@ class Batch
         #   an exception.
         def post_execute(process_obj, success)
             Batch::Events.publish(self, 'post-execute', process_obj, success)
+            @object = nil
         end
 
 

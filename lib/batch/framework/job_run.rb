@@ -67,6 +67,7 @@ class Batch
             end
 
 
+            # Adds a Task::Run to this Job::Run.
             def <<(task_run)
                 unless task_run.is_a?(Task::Run)
                     raise ArgumentError, "Only Task::Run objects can be added to this Job::Run"

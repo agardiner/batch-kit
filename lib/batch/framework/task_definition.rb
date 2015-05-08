@@ -30,7 +30,8 @@ class Batch
                 job_defn = job_class.job
                 raise ArgumentError, "job_class must have a Job::Definition" unless job_defn
 
-                @name = task_name || method_name.to_s
+                @name = task_name || method_name.to_s.gsub(/([^A-Z ])([A-Z])/, '\1 \2').
+                    gsub(/_/, ' ').gsub('::', ':').gsub(/\b([a-z])/) { $1.upcase }
                 @job = job_defn
                 @method_name = nil
                 self.method_name = method_name

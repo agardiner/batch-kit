@@ -183,7 +183,7 @@ class Batch
 
                 # Lock table, holds details of the current locks
                 @conn.create_table?(:batch_lock) do
-                    primary_key :lock_name, type: String, size: 50
+                    String :lock_name, type: String, size: 50, unique_key: true
                     foreign_key :job_run, :batch_job_run
                     DateTime :lock_created_at, null: false
                     DateTime :lock_expires_at, null: false

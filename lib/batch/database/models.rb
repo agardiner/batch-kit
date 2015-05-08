@@ -460,20 +460,20 @@ class Batch
             unrestrict_primary_key
 
 
-            def self.lock?(job_obj, lock_name, lock_timeout)
+            def self.lock?(job_run, lock_name, lock_timeout)
                 lock_expires_at = nil
-                self.transaction do
+                self.dataset.db.transaction do
                     lock_rec = self.where(lock_name: lock_name).first
                     if lock_rec
-                        if lock_rec.lock_expires_at > Time.now
-                            self.where(lock_name).delete
+                        if lock_rec.lock_expires_at < Time.now
+                            self.where(lock_name: lock_name).delete
                             lock_rec = nil
                         end
                     end
                     if lock_rec.nil?
                         lock_expires_at = Time.now + lock_timeout
-                        if job_obj.job_run.persist?
-                            self.new(lock_name: lock_name, job_run: job_obj.job_run.job_run_id,
+                        if job_run.persist?
+                            self.new(lock_name: lock_name, job_run: job_run.job_run_id,
                                      lock_created_at: Time.now,
                                      lock_expires_at: lock_expires_at).save
                         end
@@ -483,22 +483,22 @@ class Batch
             end
 
 
-            def self.unlock?(job_obj, lock_name)
+            def self.unlock?(job_run, lock_name)
                 unlocked = false
-                if job_obj.job_run.persist?
+                if job_run.persist?
                     self.where(lock_name: lock_name,
-                               job_run: job_obj.job_run.job_run_id).delete
+                               job_run: job_run.job_run_id).delete
                     unlocked = true
                 end
                 unlocked
             end
 
 
-            Batch::Events.subscribe(ActsAsJob, 'lock?') do |job_obj, lock_name, lock_timeout|
-                Lock.lock?(job_obj, lock_name, lock_timeout)
+            Batch::Events.subscribe(Batch::Runnable, 'lock?') do |job_run, lock_name, lock_timeout|
+                Lock.lock?(job_run, lock_name, lock_timeout)
             end
-            Batch::Events.subscribe(ActsAsJob, 'unlock?') do |job_obj, lock_name|
-                Lock.unlock?(job_obj, lock_name)
+            Batch::Events.subscribe(Batch::Runnable, 'unlock?') do |job_run, lock_name|
+                Lock.unlock?(job_run, lock_name)
             end
 
         end

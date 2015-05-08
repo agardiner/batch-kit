@@ -45,8 +45,8 @@ class Batch
             unless lock_timeout && lock_timeout.is_a?(Fixnum) && lock_timeout > 0
                 raise ArgumentError, "Invalid lock_timeout; must be > 0"
             end
-            unless lock_wait_timeout.nil? || (lock_wait_timeout.is_a?(Fixnum) && lock_wait_timeout > 0)
-                raise ArgumentError, "Invalid lock_wait_timeout; must be nil or > 0"
+            unless lock_wait_timeout.nil? || (lock_wait_timeout.is_a?(Fixnum) && lock_wait_timeout >= 0)
+                raise ArgumentError, "Invalid lock_wait_timeout; must be nil or >= 0"
             end
             unless Batch::Events.has_subscribers?(self, 'lock?')
                 if self.respond_to?(:log)
@@ -57,23 +57,34 @@ class Batch
             lock_wait_timeout ||= lock_timeout
             lock_expire_time = nil
             wait_expire_time = Time.now + lock_wait_timeout
-            begin
-                Timeout.timeout(lock_wait_timeout) do
-                    i = 0
-                    while Time.now < wait_expire_time do
-                        lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name, lock_timeout)
-                        break if lock_expire_time
-                        if i == 0
-                            Batch::Events.publish(self, 'lock_wait', lock_name, wait_expire_time)
+            if lock_wait_timeout > 0
+                # Loop waiting for lock if not available
+                begin
+                    Timeout.timeout(lock_wait_timeout) do
+                        i = 0
+                        loop do
+                            lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name, lock_timeout)
+                            break if lock_expire_time
+                            if i == 0
+                                Batch::Events.publish(self, 'lock_wait', lock_name, wait_expire_time)
+                            end
+                            sleep 1
+                            i += 1
                         end
-                        sleep 1
-                        i += 1
+                        Batch::Events.publish(self, 'locked', lock_name, lock_expire_time)
                     end
-                    Batch::Events.publish(self, 'locked', lock_name, lock_expire_time)
+                rescue Timeout::Error
+                    Batch::Events.publish(self, 'lock_wait_timeout', lock_name, wait_expire_time)
+                    raise Timeout::Error, "Timed out waiting for lock '#{lock_name}' to become available"
                 end
-            rescue Timeout::Error
-                Batch::Events.publish(self, 'lock_wait_timeout', lock_name, wait_expire_time)
-                raise
+            else
+                # No waiting for lock to become free
+                if lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name, lock_timeout)
+                    Batch::Events.publish(self, 'locked', lock_name, lock_expire_time)
+                else
+                    Batch::Events.publish(self, 'lock_wait_timeout', lock_name, wait_expire_time)
+                    raise Timeout::Error, "Lock '#{lock_name}' is already in use"
+                end
             end
         end
 

@@ -1,4 +1,5 @@
 require_relative 'events'
+require_relative 'lockable'
 require_relative 'framework/definable'
 require_relative 'framework/job_definition'
 require_relative 'framework/task_definition'

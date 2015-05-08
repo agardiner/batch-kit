@@ -30,24 +30,24 @@ class Batch
             end
         end
 
-        Batch::Events.subscribe(Runnable, 'lock_wait') do |job_obj|
-            if job_obj.is_a?(Loggable)
+        Batch::Events.subscribe(Runnable, 'lock_wait') do |job_run|
+            if (job_obj = job_run.object).is_a?(Loggable)
                 job_obj.log.detail "Waiting for lock '#{lock_name}' to become avaialable"
             end
         end
-        Batch::Events.subscribe(Runnable, 'lock_wait_timeout') do |job_obj, lock_name|
-            if job_obj.is_a?(Loggable)
+        Batch::Events.subscribe(Runnable, 'lock_wait_timeout') do |job_run, lock_name|
+            if (job_obj = job_run.object).is_a?(Loggable)
                 job_obj.log.error "Timed out waiting for lock '#{lock_name}' to become available"
             end
         end
-        Batch::Events.subscribe(Runnable, 'locked') do |job_obj, lock_name, lock_expire_time|
-            if job_obj.is_a?(Loggable)
+        Batch::Events.subscribe(Runnable, 'locked') do |job_run, lock_name, lock_expire_time|
+            if (job_obj = job_run.object).is_a?(Loggable)
                 job_obj.log.detail "Obtained lock '#{lock_name}'; expires at #{
                     lock_expire_time.strftime('%H:%M:%S')}"
             end
         end
-        Batch::Events.subscribe(Runnable, 'unlocked') do |job_obj, lock_name|
-            if job_obj.is_a?(Loggable)
+        Batch::Events.subscribe(Runnable, 'unlocked') do |job_run, lock_name|
+            if (job_obj = job_run.object).is_a?(Loggable)
                 job_obj.log.detail "Released lock '#{lock_name}'"
             end
         end
