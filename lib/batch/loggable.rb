@@ -26,7 +26,7 @@ class Batch
         Batch::Events.subscribe(Runnable, 'post-execute') do |run, job_obj, ok|
             if job_obj.is_a?(Loggable)
                 job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
-                    ok ? 'successfully' : 'with errors'} in #{run.elapsed} seconds"
+                    ok ? 'successfully' : 'with errors'} in #{'%.3f' % run.elapsed} seconds"
             end
         end
 

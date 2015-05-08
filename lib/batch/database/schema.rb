@@ -14,7 +14,7 @@ class Batch
 
             # Create a batch schema instance
             def initialize(options = {})
-                @log = Batch::LogManager.logger('batch.schema')
+                @log = Batch::LogManager.logger('batch.database.schema')
                 @log.level = options.fetch(:log_level, :error)
             end
 

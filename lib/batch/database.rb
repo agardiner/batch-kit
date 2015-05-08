@@ -8,7 +8,13 @@ class Batch
 
 
         def initialize(options = {})
+            @options = options
             @schema = Schema.new(options)
+        end
+
+
+        def log
+            @log ||= Batch::LogManager.logger('batch.database')
         end
 
 
@@ -29,9 +35,9 @@ class Batch
         # Purges detail records that are older than the retention threshhold
         def perform_housekeeping
             # Only do housekeeping once per day
-            #return if @conn.batch_job_run.where{job_start_time > Date.today}.count > 0
+            return if JobRun.where{job_start_time > Date.today}.count > 0
 
-            @schema.log.info "Performing batch database housekeeping"
+            log.info "Performing batch database housekeeping"
 
             # Abort jobs in Executing state that have not logged for 6+ hours
             @schema.connection.transaction do
@@ -40,10 +46,58 @@ class Batch
                 curr_jobs = JobRunLog.select_group(:job_run).
                     where(job_run: exec_jobs).having{max(log_time) > cutoff}.map(:job_run)
                 abort_jobs = JobRun.where(job_run: exec_jobs - curr_jobs).all
-                if abort_jobs.size > 0
+                if abort_jobs.count > 0
+                    log.detail "Cleaning up #{abort_jobs.count} zombie jobs"
                     abort_tasks = TaskRun.where(job_run: abort_jobs.map(&:id), task_status: 'EXECUTING')
                     abort_tasks.each(&:timeout)
                     abort_jobs.each(&:timeout)
+                end
+            end
+
+            # Purge log records for old job runs
+            @schema.connection.transaction do
+                purge_date = Date.today - @options.fetch(:log_retention_days, 60)
+                purge_job_runs = JobRun.where(job_purged_flag: false).
+                    where{job_start_time < purge_date}.map(:job_run)
+                if purge_job_runs.count > 0
+                    log.detail "Purging log records for #{purge_job_runs.count} job runs"
+                    JobRunLog.where(job_run: purge_job_runs).delete
+                    JobRun.where(job_run: purge_job_runs).update(purged: true)
+                end
+            end
+
+            # Purge old task and job runs
+            @schema.connection.transaction do
+                purge_date = Date.today - @options.fetch(:job_run_retention_days, 365)
+                purge_job_runs = JobRun.where{job_start_time < purge_date}.map(:job_run)
+                if purge_job_runs.count > 0
+                    log.detail "Purging job and task run records for #{purge_job_runs.count} job runs"
+                    JobRunArg.where(job_run: purge_job_runs).delete
+                    TaskRun.where(job_run: purge_job_runs).delete
+                    JobRun.where(job_run: purge_job_runs).delete
+                end
+            end
+
+            # Purge old request runs
+            @schema.connection.transaction do
+                purge_date = Date.today - @options.fetch(:request_retention_days, 90)
+                purge_requests = Request.where{request_launched_at < purge_date}.map(:request_id)
+                if purge_requests.count > 0
+                    log.detail "Purging request records for #{purge_requests.count} requests"
+                    Request.where(request_id: purge_requests).delete
+                    Requestor.where(request_id: purge_requests).delete
+                end
+            end
+
+            # Purge jobs with no runs
+            @schema.connection.transaction do
+                purge_jobs = Job.left_join(JobRun, :job_id => :job_id).
+                    where(batch_job_run__job_id: nil).map(:job_id)
+                if purge_jobs.count > 0
+                    log.detail "Purging #{purge_jobs.count} old jobs"
+                    JobRunFailure.where(job_id: purge_jobs).delete
+                    Task.where(job_id: purge_jobs).delete
+                    Job.where(job_id: purge_jobs).delete
                 end
             end
         end

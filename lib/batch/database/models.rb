@@ -504,6 +504,15 @@ class Batch
         end
 
 
+
+        class Request < Sequel::Model(:batch_request)
+        end
+
+
+        class Requestor < Sequel::Model(:batch_requestor)
+        end
+
+
     end
 
 end
