@@ -48,5 +48,17 @@ class Batch
 
     end
 
+
+    Batch::Events.subscribe(Runnable, 'execute') do |run, obj, *args|
+        Console.title = case run
+                        when Job::Run then run.label
+                        when Task::Run then "#{run.job_run.label} : #{run.label}"
+                        end
+    end
+
+    Batch::Events.subscribe(Task::Run, 'post-execute') do |run, obj, *args|
+        Console.title = run.job_run.label
+    end
+
 end
 
