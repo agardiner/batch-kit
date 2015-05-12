@@ -63,9 +63,14 @@ class Batch
                     Timeout.timeout(lock_wait_timeout) do
                         i = 0
                         loop do
-                            lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name, lock_timeout)
+                            lock_holder = {}
+                            lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name,
+                                                                     lock_timeout, lock_holder)
                             break if lock_expire_time
                             if i == 0
+                                Batch::Events.publish(self, 'lock_held', lock_name,
+                                                      lock_holder[:lock_holder],
+                                                      lock_holder[:lock_expires_at])
                                 Batch::Events.publish(self, 'lock_wait', lock_name, wait_expire_time)
                             end
                             sleep 1
