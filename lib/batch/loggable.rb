@@ -13,6 +13,7 @@ class Batch
         end
 
 
+        # Subscribe to batch lifecycle events that should be logged
         Batch::Events.subscribe(Runnable, 'execute') do |run, job_obj, *args|
             if job_obj.is_a?(Loggable)
                 case run
@@ -39,11 +40,6 @@ class Batch
             if (job_obj = job_run.object).is_a?(Loggable)
                 job_obj.log.warn "Lock '#{lock_name}' is currently held by #{lock_holder}; expires at #{
                     lock_expire_time.strftime('%H:%M:%S')}"
-            end
-        end
-        Batch::Events.subscribe(Runnable, 'lock_wait_timeout') do |job_run, lock_name|
-            if (job_obj = job_run.object).is_a?(Loggable)
-                job_obj.log.error "Timed out waiting for lock '#{lock_name}' to become available"
             end
         end
         Batch::Events.subscribe(Runnable, 'locked') do |job_run, lock_name, lock_expire_time|

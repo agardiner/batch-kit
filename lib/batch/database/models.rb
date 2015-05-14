@@ -460,7 +460,7 @@ class Batch
             unrestrict_primary_key
 
 
-            def self.lock?(job_run, lock_name, lock_timeout, lock_holder = {})
+            def self.lock?(job_run, lock_name, lock_timeout, lock_holder = nil)
                 lock_expires_at = nil
                 self.dataset.db.transaction do
                     lock_rec = self.where(lock_name: lock_name).first
@@ -470,8 +470,10 @@ class Batch
                             lock_rec = nil
                         else
                             lock_job = JobRun.join(Job, :job_id => :job_id).where(job_run: lock_rec.job_run).first
-                            lock_holder[:lock_expires_at] = lock_rec.lock_expires_at.getlocal
-                            lock_holder[:lock_holder] = "job '#{lock_job[:job_name]}' (job run #{lock_rec.job_run})"
+                            if lock_holder
+                                lock_holder[:lock_expires_at] = lock_rec.lock_expires_at.getlocal
+                                lock_holder[:lock_holder] = "job '#{lock_job[:job_name]}' (job run #{lock_rec.job_run})"
+                            end
                         end
                     end
                     if lock_rec.nil?

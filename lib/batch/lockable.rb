@@ -84,9 +84,12 @@ class Batch
                 end
             else
                 # No waiting for lock to become free
-                if lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name, lock_timeout)
+                lock_holder = {}
+                if lock_expire_time = Batch::Events.publish(self, 'lock?', lock_name, lock_timeout, lock_holder)
                     Batch::Events.publish(self, 'locked', lock_name, lock_expire_time)
                 else
+                    Batch::Events.publish(self, 'lock_held', lock_name,
+                                          lock_holder[:lock_holder], lock_holder[:lock_expires_at])
                     Batch::Events.publish(self, 'lock_wait_timeout', lock_name, wait_expire_time)
                     raise Timeout::Error, "Lock '#{lock_name}' is already in use"
                 end
