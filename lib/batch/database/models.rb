@@ -318,7 +318,7 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+            Batch::Events.subscribe(Batch::Job::Run, 'execute', 0) do |job_run, job_obj, *args|
                 JobRun.new(job_run).job_start(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do |job_run, job_obj, ok|
@@ -414,7 +414,7 @@ class Batch
 
 
 
-            Batch::Events.subscribe(Batch::Task::Run, 'execute') do |task_run, job_obj, *args|
+            Batch::Events.subscribe(Batch::Task::Run, 'execute', 0) do |task_run, job_obj, *args|
                 TaskRun.new(task_run).task_start(task_run) if task_run.persist?
             end
             Batch::Events.subscribe(Batch::Task::Run, 'post-execute') do |task_run, job_obj, ok|

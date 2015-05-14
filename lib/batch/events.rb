@@ -43,9 +43,11 @@ class Batch
             # @param source [Object] The type of source object from which to
             #   listen for events.
             # @param event [String] The name of the event to subscribe to.
+            # @param position [Fixnum] The position within the list to insert
+            #   the subscriber. Default is to add to the end of the list.
             # @param callback [Proc] A block to be invoked when the event occurs.
-            def subscribe(source, event, &callback)
-                subscribers[event] << Subscription.new(source, callback)
+            def subscribe(source, event, position = -1, &callback)
+                subscribers[event].insert(position, Subscription.new(source, callback))
             end
 
 

@@ -18,7 +18,11 @@ class Batch
             if job_obj.is_a?(Loggable)
                 case run
                 when Job::Run
-                    job_obj.log.info "Job '#{run.label}' started on #{run.computer} by #{run.run_by}"
+                    id = run.job_run_id ? " as job run #{run.job_run_id}" : ''
+                    job_obj.log.info "Job '#{run.label}' started on #{run.computer} by #{run.run_by}#{id}"
+                when Task::Run
+                    id = run.task_run_id ? " as task run #{run.task_run_id}" : ''
+                    job_obj.log.info "Task '#{run.label}' started#{id}"
                 else
                     job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' started"
                 end
