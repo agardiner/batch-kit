@@ -31,6 +31,8 @@ class Batch
                 end
             end
 
+            alias_method :warn, :warning
+
 
             def log_file=(log_path, options = {})
                 @log_file.close if @log_file

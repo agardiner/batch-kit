@@ -32,6 +32,8 @@ class Batch
                 EOD
             end
 
+            alias_method :warn, :warning
+
 
             def method_missing(mthd, *args)
                 @log4r_logger.send(mthd, *args)

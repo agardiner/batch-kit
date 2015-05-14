@@ -22,6 +22,8 @@ class Batch
                 end
             end
 
+            alias_method :warn, :warning
+
 
             def log_msg(level, msg)
             end
