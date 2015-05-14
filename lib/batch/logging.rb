@@ -63,11 +63,15 @@ class Batch
             # Returns a symbol identifying which logging framework is being used.
             def log_framework
                 unless @log_framework
-                    # Default is to log to STDOUT
                     if RUBY_PLATFORM == 'java'
                         LogManager.log_framework = :java_util_logging
                     else
-                        LogManager.log_framework = :stdout
+                        log4r = require 'log4r' rescue nil
+                        if log4r.nil?
+                            LogManager.log_framework = :stdout
+                        else
+                            LogManager.log_framework = :log4r
+                        end
                     end
                 end
                 @log_framework
@@ -88,6 +92,7 @@ class Batch
                 end
                 @loggers = {}
                 self.level = lvl if lvl
+                logger('').trace "Log framework is #{@log_framework}"
             end
 
 
