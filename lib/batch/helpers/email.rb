@@ -228,9 +228,11 @@ class Batch
                     end
                 end
 
-                # TODO: Add job log file as attachment
-                # body << "See the attached log for details.\n"
-                # msg.add_file(Log.log_file) if Log.log_file
+                # Add job log file as attachment (if it exists)
+                if self.respond_to?(:log) && self.log.log_file
+                    body << "See the attached log for details.\n"
+                    msg.add_file(self.log.log_file)
+                end
                 msg.body = body.join("\n")
                 msg
             end
