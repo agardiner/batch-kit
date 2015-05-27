@@ -90,15 +90,14 @@ class Batch
                 if init_proc = Logging::FRAMEWORK_INIT[@log_framework]
                     init_proc.call
                 end
-                @loggers = {}
                 self.level = lvl if lvl
-                logger('').trace "Log framework is #{@log_framework}"
+                logger.trace "Log framework is #{@log_framework}"
             end
 
 
             # Returns the current root log level
             def level
-                logger('').level
+                logger.level
             end
 
 
@@ -109,7 +108,7 @@ class Batch
                     lvl = Log4r::LNAMES.index(level.to_s.upcase)
                     Log4r::Logger.each_logger{ |l| l.level = lvl }
                 else
-                    logger('').level = level
+                    logger.level = level
                 end
             end
 
@@ -126,24 +125,29 @@ class Batch
                         fmt = Java::JavaUtilLogging::SimpleFormatter.new
                     end
                     fh.setFormatter(fmt)
-                    logger('').addHandler(fh)
+                    logger.addHandler(fh)
                 when :log4r
                     if outputter = Log4r::Outputter['file']
                         outputter.close
-                        logger('').remove 'file'
+                        logger.remove 'file'
                     end
                     if log_path
                         formatter = Log4r::PatternFormatter.new(pattern: '[%d] %-6l %x %M\r')
                         outputter = Log4r::FileOutputter.new('file', filename: log_path,
                                                              trunc: false, formatter: formatter)
-                        logger('').add 'file'
+                        logger.add 'file'
                     end
                 when :stdout
-                    logger('').log_file = log_path
+                    logger.log_file = log_path
                 end
             end
 
 
+            # Returns a logger with a given name, which must be under the 'batch'
+            # namespace. If name is omitted, the logger is named 'batch'. If a
+            # name is specified that is not under 'batch', then it is prepended
+            # with 'batch'.
+            #
             # @return [Logger] a logger object that can be used for generating
             #   log messages. The type of logger returned will depend on the
             #   log framework being used, but the logger is guaranteed to
@@ -155,33 +159,25 @@ class Batch
             #   - detail
             #   - trace
             #   - debug
-            def logger(name)
-                log_framework unless @loggers
+            def logger(name = nil)
                 case name
-                when /^batch/
-                when ''
+                when NilClass, ''
                     name = 'batch'
+                when /^batch/
                 when String
                     name = "batch.#{name}"
                 end
-                logger = @loggers[name]
-                unless logger
-                    logger = case log_framework
-                    when :stdout
-                        l = Batch::Logging::StdOutLogger.new(name)
-                        l.log_file = (@loggers['batch'] && @loggers['batch'].log_file) if name != 'batch'
-                        l
-                    when :java_util_logging
-                        Java::JavaUtilLogging::Logger.getLogger(name)
-                    when :log4r
-                        log4r_name = name.gsub('.', '::')
-                        Batch::Logging::Log4rFacade.new(Log4r::Logger[log4r_name] ||
-                                                        Log4r::Logger.new(log4r_name))
-                    else Batch::Logging::NullLogger.instance
-                    end
-                    @loggers[name] = logger
+                case log_framework
+                when :stdout
+                    Batch::Logging::StdOutLogger.logger(name)
+                when :java_util_logging
+                    Java::JavaUtilLogging::Logger.getLogger(name)
+                when :log4r
+                    log4r_name = name.gsub('.', '::')
+                    Batch::Logging::Log4rFacade.new(Log4r::Logger[log4r_name] ||
+                                                    Log4r::Logger.new(log4r_name))
+                else Batch::Logging::NullLogger.instance
                 end
-                logger
             end
 
         end

@@ -4,6 +4,12 @@ class Batch
 
         class StdOutLogger
 
+            def self.logger(name)
+                @loggers ||= {}
+                @loggers[name] ||= self.new(name)
+            end
+
+
             # @return [String] The name of this logger
             attr_reader :name
             # @return [Symbol] The current level at which logging is set
