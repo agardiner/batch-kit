@@ -43,7 +43,7 @@ class Batch
 
             def configure(options = {})
                 self.log_framework = options[:log_framework] if options[:log_framework]
-                if options.fetch(:color, true)
+                if options.fetch(:log_color, true)
                     case self.log_framework
                     when :log4r
                         require 'color_console/log4r_logger'
@@ -55,8 +55,6 @@ class Batch
                         require 'color_console'
                     end
                 end
-                self.level = options[:log_level] if options[:log_level]
-                self.log_file = options[:log_file] if options[:log_file]
             end
 
 
@@ -109,36 +107,6 @@ class Batch
                     Log4r::Logger.each_logger{ |l| l.level = lvl }
                 else
                     logger.level = level
-                end
-            end
-
-
-            # Sets the log file to which messages should be logged
-            def log_file=(log_path)
-                FileUtils.mkdir_p(File.dirname(log_path)) if log_path
-                case log_framework
-                when :java_util_logging
-                    fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
-                    if defined?(Console::JavaUtilLogger)
-                        fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT] %4$-6s  %5$s%n')
-                    else
-                        fmt = Java::JavaUtilLogging::SimpleFormatter.new
-                    end
-                    fh.setFormatter(fmt)
-                    logger.addHandler(fh)
-                when :log4r
-                    if outputter = Log4r::Outputter['file']
-                        outputter.close
-                        logger.remove 'file'
-                    end
-                    if log_path
-                        formatter = Log4r::PatternFormatter.new(pattern: '[%d] %-6l %x %M\r')
-                        outputter = Log4r::FileOutputter.new('file', filename: log_path,
-                                                             trunc: false, formatter: formatter)
-                        logger.add 'file'
-                    end
-                when :stdout
-                    logger.log_file = log_path
                 end
             end
 
