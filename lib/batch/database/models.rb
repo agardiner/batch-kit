@@ -143,7 +143,7 @@ class Batch
 
 
             def job_failure(job_run)
-                self.job_failure_count += 1
+                self.job_fail_count += 1
                 self.save
             end
 
@@ -240,7 +240,7 @@ class Batch
 
 
             def task_failure(task_run)
-                self.task_failure_count += 1
+                self.task_fail_count += 1
                 self.save
             end
 
@@ -364,7 +364,8 @@ class Batch
             def initialize(job_run, ex)
                 super(job_run: job_run.job_run_id, job_id: job_run.definition.job_id,
                       job_version: job_run.definition.job_version, job_failed_at: Time.now,
-                      exception_message: ex.message, exception_backtrace: ex.backtrace.join("\n"))
+                      exception_message: ex.message[0..500],
+                      exception_backtrace: ex.backtrace.join("\n")[0..4000])
             end
 
 
