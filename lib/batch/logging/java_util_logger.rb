@@ -62,6 +62,7 @@ class Java::JavaUtilLogging::Logger
             fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
             if defined?(Console::JavaUtilLogger)
                 fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT] %4$-6s  %5$s%n')
+                fmt.width = -1
             else
                 fmt = Java::JavaUtilLogging::SimpleFormatter.new
             end
