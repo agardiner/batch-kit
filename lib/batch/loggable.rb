@@ -14,12 +14,12 @@ class Batch
 
 
         # Subscribe to batch lifecycle events that should be logged
-        Batch::Events.subscribe(Job::Definition, 'post-configure') do |job_cls, cfg|
+        Batch::Events.subscribe(Configurable, 'post-configure') do |job_cls, cfg|
             if cfg.has_key?(:log_level) || cfg.has_key?(:log_file)
                 log = LogManager.logger(job_cls.name)
                 if cfg[:log_level]
                     log.level = cfg[:log_level]
-                    log.config "Log level set to #{cfg[:log_level]}"
+                    log.config "Log level set to #{cfg[:log_level].upcase}"
                 end
                 if cfg.has_key?(:log_file)
                     log.config "Logging output to '#{cfg[:log_file]}'" if cfg[:log_file]

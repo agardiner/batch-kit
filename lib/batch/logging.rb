@@ -152,7 +152,7 @@ class Batch
 
 
         if defined?(Batch::Events)
-            Batch::Events.subscribe(Job::Definition, 'post-configure') do |src, cfg|
+            Batch::Events.subscribe(Configurable, 'post-configure') do |src, cfg|
                 LogManager.configure(cfg)
             end
         end

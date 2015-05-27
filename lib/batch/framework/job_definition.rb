@@ -38,7 +38,6 @@ class Batch
             # Create a new job Definition object for the job defined in +job_class+
             # in +job_file+.
             def initialize(job_class, job_file, job_name = nil)
-                super()
                 raise ArgumentError, "job_class must be a Class" unless job_class.is_a?(Class)
                 @job_class = job_class
                 @file = job_file
@@ -47,6 +46,7 @@ class Batch
                 @computer = Socket.gethostname
                 @method_name = nil
                 @tasks = {}
+                super()
             end
 
 

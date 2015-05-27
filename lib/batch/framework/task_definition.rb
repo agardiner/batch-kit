@@ -24,7 +24,6 @@ class Batch
             # Create a new Task::Definition object for the task defined in +job_class+
             # in +method_name+.
             def initialize(job_class, method_name, task_name = nil)
-                super()
                 raise ArgumentError, "job_class must be a Class" unless job_class.is_a?(Class)
                 raise ArgumentError, "method_name must be a Symbol" unless method_name.is_a?(Symbol)
                 job_defn = job_class.job
@@ -36,6 +35,7 @@ class Batch
                 @method_name = nil
                 self.method_name = method_name
                 @job << self
+                super()
             end
 
 
