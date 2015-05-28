@@ -1,75 +1,81 @@
 require 'java'
 
 
-class Java::JavaUtilLogging::Logger
+class Batch
 
-    # @return The path to any log file used with this logger
-    attr_reader :log_file
+    module Logging
 
-    alias_method :error, :severe
-    alias_method :warn, :warning
-    alias_method :detail, :fine
-    alias_method :trace, :finer
-    alias_method :debug, :finest
+        class JavaLogFacade
 
+            LEVEL_MAP = {
+                :error => Java::JavaUtilLogging::Level::SEVERE,
+                :warning => Java::JavaUtilLogging::Level::WARNING,
+                :info => Java::JavaUtilLogging::Level::INFO,
+                :config => Java::JavaUtilLogging::Level::CONFIG,
+                :detail => Java::JavaUtilLogging::Level::FINE,
+                :trace => Java::JavaUtilLogging::Level::FINER,
+                :debug => Java::JavaUtilLogging::Level::FINEST
+            }
 
-    def level
-        case self.getLevel()
-        when Java::JavaUtilLogging::Level::SEVERE
-            :error
-        when Java::JavaUtilLogging::Level::WARNING
-            :warning
-        when Java::JavaUtilLogging::Level::INFO
-            :info
-        when Java::JavaUtilLogging::Level::CONFIG
-            :config
-        when Java::JavaUtilLogging::Level::FINE
-            :detail
-        when Java::JavaUtilLogging::Level::FINER
-            :trace
-        when Java::JavaUtilLogging::Level::FINEST
-            :debug
-        end
-    end
+            # @return The path to any log file used with this logger
+            attr_reader :log_file
 
 
-    def level=(level)
-        case level
-        when :error
-            self.setLevel(Java::JavaUtilLogging::Level::SEVERE)
-        when :warning
-            self.setLevel(Java::JavaUtilLogging::Level::WARNING)
-        when :info
-            self.setLevel(Java::JavaUtilLogging::Level::INFO)
-        when :config
-            self.setLevel(Java::JavaUtilLogging::Level::CONFIG)
-        when :detail
-            self.setLevel(Java::JavaUtilLogging::Level::FINE)
-        when :trace
-            self.setLevel(Java::JavaUtilLogging::Level::FINER)
-        when :debug
-            self.setLevel(Java::JavaUtilLogging::Level::FINEST)
-        end
-    end
-
-
-    # Adds a FileHandler to capture output from this logger to a log file.
-    def log_file=(log_path)
-        self.getHandlers().each{ |h| self.removeHandler(h) if h.is_a?(Java::JavaUtilLogging::FileHandler) }
-        @log_file = log_path
-        if log_path
-            FileUtils.mkdir_p(File.dirname(log_path))
-            fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
-            if defined?(Console::JavaUtilLogger)
-                fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT] %4$-6s  %5$s', -1)
-                fmt.level_labels[Java::JavaUtilLogging::Level::FINE] = 'DETAIL'
-                fmt.level_labels[Java::JavaUtilLogging::Level::FINER] = 'TRACE'
-            else
-                fmt = Java::JavaUtilLogging::SimpleFormatter.new
+            def initialize(logger)
+                @java_logger = logger
             end
-            fh.setFormatter(fmt)
-            self.addHandler(fh)
+
+
+            def level
+                LEVEL_MAP.invert[@java_logger.getLevel()]
+            end
+
+
+            def level=(level)
+                @java_logger.setLevel(LEVEL_MAP[level])
+            end
+
+
+            # Adds a FileHandler to capture output from this logger to a log file.
+            def log_file=(log_path)
+                @java_logger.getHandlers().each do |h|
+                    @java_logger.removeHandler(h) if h.is_a?(Java::JavaUtilLogging::FileHandler)
+                end
+                @log_file = log_path
+                if log_path
+                    FileUtils.mkdir_p(File.dirname(log_path))
+                    fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
+                    if defined?(Console::JavaUtilLogger)
+                        fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT] %4$-6s  %5$s', -1)
+                        fmt.level_labels[Java::JavaUtilLogging::Level::FINE] = 'DETAIL'
+                        fmt.level_labels[Java::JavaUtilLogging::Level::FINER] = 'TRACE'
+                    else
+                        fmt = Java::JavaUtilLogging::SimpleFormatter.new
+                    end
+                    fh.setFormatter(fmt)
+                    self.addHandler(fh)
+                end
+            end
+
+
+            Batch::Logging::LEVELS.each do |lvl|
+                java_mthd = LEVEL_MAP[lvl].getName().downcase.intern
+                class_eval <<-EOD
+                    def #{lvl}(msg)
+                        @java_logger.#{java_mthd}(msg.to_s)
+                    end
+                EOD
+            end
+
+            alias_method :warn, :warning
+
+
+            def method_missing(mthd, *args)
+                @java_logger.send(mthd, *args)
+            end
+
         end
+
     end
 
 end

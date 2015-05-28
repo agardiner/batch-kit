@@ -142,7 +142,7 @@ class Batch
                 when :stdout
                     Batch::Logging::StdOutLogger.logger(name)
                 when :java_util_logging
-                    Java::JavaUtilLogging::Logger.getLogger(name)
+                    Batch::Logging::JavaLogFacade.new(Java::JavaUtilLogging::Logger.getLogger(name))
                 when :log4r
                     log4r_name = name.gsub('.', '::')
                     Batch::Logging::Log4rFacade.new(Log4r::Logger[log4r_name] ||

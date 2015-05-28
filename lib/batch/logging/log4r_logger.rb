@@ -15,9 +15,11 @@ class Batch
                 @log4r_logger = logger
             end
 
+
             def level
                 Log4r::LNAMES[@log4r_logger.level].downcase.intern
             end
+
 
             def level=(lvl)
                 @log4r_logger.level = Log4r::LNAMES.index(lvl.to_s.upcase)
