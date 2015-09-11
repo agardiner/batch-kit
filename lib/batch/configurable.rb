@@ -11,6 +11,9 @@ class Batch
 
             def configure(*cfg_files)
                 options = cfg_files.last.is_a?(Hash) ? cfg_files.pop.clone : {}
+                if defined?(Batch::Events)
+                    Batch::Events.publish(self, 'pre-configure', config)
+                end
                 config.decryption_key = options.delete(:decryption_key) if options[:decryption_key]
                 config.merge!(options)
                 cfg_files.each do |cfg_file|
