@@ -77,7 +77,6 @@ class Batch
 
 
             def add_aspect(rsrc_cls, helper_mthd, disp_mthd)
-                defn = self
                 mthd = ResourceHelper.instance_method(helper_mthd)
                 ResourceHelper.class_eval do
                     define_method helper_mthd do |*args|
@@ -91,8 +90,9 @@ class Batch
                                 end
                                 # Override disposal method on this acquired instance
                                 # to call #dispose_resource instead
+                                defn = self
                                 result.define_singleton_method(disp_mthd) do
-                                    dispose_resource(self)
+                                    defn.dispose_resource(self)
                                 end
                                 add_resource(result)
                                 Batch::Events.publish(rsrc_cls, 'resource.acquired', result)
