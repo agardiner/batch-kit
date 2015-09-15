@@ -20,7 +20,7 @@ class Batch
 
             # Add delegates for each specified property in +props+.
             def add_delegated_properties(*props)
-                del_props = props.reject{ |prop| self.methods.include?(prop) }
+                del_props = props.reject{ |prop| self.instance_methods.include?(prop) }
                 def_delegators :@definition, *del_props
             end
 
