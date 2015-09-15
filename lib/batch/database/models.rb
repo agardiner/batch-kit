@@ -337,7 +337,11 @@ class Batch
 
             def self.from(job_run)
                 job_run.job_args && job_run.job_args.each_pair do |name, val|
-                    JobRunArg.new(job_run.job_run_id, name, val).save
+                    v = case val
+                        when String, Numeric, TrueClass, FalseClass then val
+                        else val.inspect
+                        end
+                    JobRunArg.new(job_run.job_run_id, name, v).save
                 end
             end
 
