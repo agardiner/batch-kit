@@ -368,8 +368,8 @@ class Batch
             def initialize(job_run, ex)
                 super(job_run: job_run.job_run_id, job_id: job_run.definition.job_id,
                       job_version: job_run.definition.job_version, job_failed_at: Time.now,
-                      exception_message: ex.message[0..500],
-                      exception_backtrace: ex.backtrace.join("\n")[0..4000])
+                      exception_message: ex.message[0...500],
+                      exception_backtrace: ex.backtrace.join("\n")[0...4000])
             end
 
 
