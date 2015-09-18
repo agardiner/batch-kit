@@ -169,8 +169,9 @@ class Batch
         # Add automatic disposal of resources on completion of job if included
         # into a job.
         def self.included(cls)
-            if defined?(Batch::ActsAsJob) && cls.include?(Batch::ActsAsJob)
-                Batch::Events.subscribe(Batch::Job::Run, 'after_execute') do
+            if (defined?(Batch::Job) && Batch::Job == cls) ||
+                (defined?(Batch::ActsAsJob) && cls.include?(Batch::ActsAsJob))
+                Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do
                     cleanup_resources
                 end
             end
