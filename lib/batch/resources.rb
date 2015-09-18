@@ -143,12 +143,12 @@ class Batch
             rsrc_cls = rsrc.class
             disp_mthd = Batch::ResourceManager.disposal_method(rsrc)
             @__resources__.delete(rsrc)
-            if Batch::Events.publish(rsrc_cls, 'resource.pre_disposal', rsrc)
+            if Batch::Events.publish(rsrc_cls, 'resource.pre-disposal', rsrc)
                 begin
                     disp_mthd.bind(rsrc).call
                     Batch::Events.publish(rsrc_cls, 'resource.disposed', rsrc)
                 rescue Exception => ex
-                    Batch::Events.publish(rsrc_cls, 'resource.disposal_failed', ex)
+                    Batch::Events.publish(rsrc_cls, 'resource.disposal-failed', ex)
                     raise
                 end
             end
