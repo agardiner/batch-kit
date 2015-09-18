@@ -48,6 +48,7 @@ class Batch
             #   the subscriber. Default is to add to the end of the list.
             # @param callback [Proc] A block to be invoked when the event occurs.
             def subscribe(source, event, position = -1, &callback)
+                @log.trace "Adding subscriber for #{source} event '#{event}'" if @log
                 subscribers[event].insert(position, Subscription.new(source, callback))
             end
 
@@ -58,6 +59,7 @@ class Batch
             #   from which to unsubscribe.
             # @param event [String] The name of the event to unsubscribe from.
             def unsubscribe(source, event)
+                @log.trace "Removing subscriber(s) for #{source} event '#{event}'" if @log
                 subscribers[event].delete_if{ |sub| sub === source }
             end
 
@@ -69,19 +71,44 @@ class Batch
             # @param event [String] The name of the event that has occurred.
             # @param payload [*Object] Arguments passed with the event.
             def publish(source, event, *payload)
+                @log.trace "Publishing event '#{event}' for #{source}" if @log
                 res = true
-                subscribers.has_key?(event) && subscribers[event].each do |sub|
-                    if sub === source
-                        begin
-                            r = sub.callback.call(source, *payload)
-                            res &&= r
-                        rescue Exception => ex
-                            STDERR.puts "Exception in '#{event}' event listener for #{source}: #{ex}\n" +
-                                "  at: #{ex.backtrace[0...10].join("\n")}"
+                count = 0
+                if subscribers.has_key?(event)
+                    subscribers[event].each do |sub|
+                        if sub === source
+                            begin
+                                r = sub.callback.call(source, *payload)
+                                count += 1
+                                res &&= r
+                            rescue Exception => ex
+                                STDERR.puts "Exception in '#{event}' event listener for #{source}: #{ex}\n" +
+                                    "  at: #{ex.backtrace[0...10].join("\n")}"
+                            end
+                        end
+                    end
+                    @log.debug "Notified #{count} listeners of '#{event}'" if @log
+                end
+                res
+            end
+
+
+            # Enable/disable event debugging
+            def debug=(dbg)
+                @log = dbg ? Batch::LogManager.logger('batch.events') : nil
+            end
+
+
+            # Dumps a list of events and their subscribers to the logger
+            def dump_subscribers(show_event = nil, log = @log)
+                if log
+                    subscribers.each do |event, subs|
+                        if show_event.nil? || show_event == event
+                            log.info "Subscribers for event '#{event}':"
+                            subs.each{ |sub| log.detail sub.inspect }
                         end
                     end
                 end
-                res
             end
 
 
