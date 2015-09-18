@@ -140,15 +140,14 @@ class Batch
         # #close), or when #cleanup_resources is used to tidy-up all managed
         # resources.
         def dispose_resource(rsrc)
-            rsrc_cls = rsrc.class
             disp_mthd = Batch::ResourceManager.disposal_method(rsrc)
             @__resources__.delete(rsrc)
-            if Batch::Events.publish(rsrc_cls, 'resource.pre-disposal', rsrc)
+            if Batch::Events.publish(rsrc, 'resource.pre-disposal')
                 begin
                     disp_mthd.bind(rsrc).call
-                    Batch::Events.publish(rsrc_cls, 'resource.disposed', rsrc)
+                    Batch::Events.publish(rsrc, 'resource.disposed')
                 rescue Exception => ex
-                    Batch::Events.publish(rsrc_cls, 'resource.disposal-failed', ex)
+                    Batch::Events.publish(rsrc, 'resource.disposal-failed', ex)
                     raise
                 end
             end
