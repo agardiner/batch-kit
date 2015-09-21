@@ -1,7 +1,7 @@
-require 'test/unit'
-require 'batch/process'
+require 'minitest/autorun'
+require 'batch/helpers/process'
 
-class TestProcess < Test::Unit::TestCase
+class TestProcess < Minitest::Test
 
 
     def test_popen
@@ -9,7 +9,7 @@ class TestProcess < Test::Unit::TestCase
 
 
     def test_launch
-        Batch::Process.launch('cmd.exe /C dir', log_level: :info)
+        Batch::Helpers::Process.launch('cmd.exe /C dir', log_level: :info)
     end
 
 end
