@@ -23,6 +23,7 @@ class Batch
                 display = "0s" if display == ''
                 display.strip
             end
+            moudle_function :display_duration
 
 
             # Displays a date/time in abbreviated format, suppressing elements of
@@ -44,6 +45,7 @@ class Batch
                     ts.strftime('%a %b %d %H:%M:%S')
                 end
             end
+            module_function :display_timestamp
 
         end
 
