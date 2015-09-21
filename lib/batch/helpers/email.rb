@@ -1,6 +1,8 @@
 require 'mail'
 require 'batch/core_ext/integer'
 require 'batch/core_ext/string'
+require 'batch/core_ext/file_utils'
+require 'batch/helpers/date_time'
 
 
 class Batch
@@ -39,6 +41,14 @@ class Batch
 
 
             # Creates an HTML formatted email, with a default set of styles.
+            #
+            # @param cfg [Batch::Config] A config object containing details of
+            #   an SMTP gateway for delivering the message. Defaults to the
+            #   config object defined by including Batch#Configurable.
+            # @param body_text [String] An optional string containing text to
+            #   add to the email body.
+            # @yield [Array<String>] an Array of strings to which body content
+            #   can be added.
             def create_html_email(cfg = config, body_text = nil)
                 if cfg.is_a?(String) || cfg.is_a?(Array)
                     body_text = cfg
@@ -136,6 +146,24 @@ class Batch
 
 
             # Adds a row of cells to a table.
+            #
+            # @param body [Array<String>] An array of lines containing the body
+            #   of the HTML message to which this table row should be added.
+            # @param row [Array, Hash, Object] An Array, Hash, or Object from
+            #   which a row of data shall be retrieved to populate the table.
+            # @param cols [Array<Hash>] An Array of Hashes, each containing
+            #   details for a single column. Each Hash can contain the following
+            #   options:
+            #     - :class: The CSS class with which to style the column cells.
+            #     - :show: A boolean value indicating whether the column should
+            #       be displayed or skipped.
+            #     - :prefix: Text to appear before the content of the cell.
+            #     - :suffix: Text to appear after the content of the cell.
+            #     - :value: A setting controlling how values are retrieved from
+            #       +row+. By default, this is by index, but this setting can
+            #       override that, and either supply a name or method to call
+            #       on +row+, or a Proc object to invoke on row.
+            # @param cell_type [Symbol] Either :td (the default) or :th.
             def add_table_cells(body, row, cols, cell_type = :td)
                 cols.each_with_index do |col, i|
                     cls = col[:class]
@@ -170,25 +198,29 @@ class Batch
 
 
             # Adds details of tasks run and their duration to an email.
-            def add_job_details_to_msg(body)
-                has_instances = self.task_runs.find{ |tr| tr.task_instance }
+            #
+            # @param body [Array<String>] An array containing the lines of the
+            #   message body. Job execution details will be added as an HTML
+            #   table to this.
+            def add_job_details_to_email(body)
+                has_instances = self.job_run.task_runs.find{ |tr| tr.instance }
                 body << "<br>"
                 body << "<div class='separator'></div>"
                 body << "<p>"
                 body << "<p>Job execution details:</p>"
-                create_html_table(body, self.task_runs,
-                                  {name: :task_name, label: 'Task'},
-                                  {name: :task_instance, show: has_instances},
-                                  {name: :task_start_time, label: 'Start Time'},
-                                  {name: :task_end_time, label: 'End Time'},
+                create_html_table(body, self.job_run.task_runs,
+                                  {name: :name, label: 'Task'},
+                                  {name: :instance, show: has_instances},
+                                  {name: :start_time, label: 'Start Time'},
+                                  {name: :end_time, label: 'End Time'},
                                   {label: 'Duration', class: 'right',
-                                   value: lambda{ |tr| display_duration(tr.elapsed) }})
+                                   value: lambda{ |tr| DateTime.display_duration(tr.elapsed) }})
                 body.slice!(-2..-1)
-                body << "<tr><th>#{self.job_name}</th>"
-                body << "<th>#{self.job_instance}</th>" if has_instances
-                body << "<th class='right'>#{self.job_start_time.strftime("%H:%M:%S")}</th>"
+                body << "<tr><th>#{self.job.name}</th>"
+                body << "<th>#{self.job_run.instance}</th>" if has_instances
+                body << "<th class='right'>#{self.job_run.start_time.strftime("%H:%M:%S")}</th>"
                 body << "<th class='right'></th>"
-                body << "<th class='right'>#{display_duration(self.elapsed)}</th></tr>"
+                body << "<th class='right'>#{DateTime.display_duration(self.job_run.elapsed)}</th></tr>"
                 body << "</tbody>"
                 body << "</table>"
                 body << "<br>"
@@ -196,7 +228,7 @@ class Batch
 
 
             # Creates an email message containing details of the exception that
-            # caused a job to fail.
+            # caused this job to fail.
             def create_failure_email(cfg = config)
                 msg = create_email(cfg)
                 to = cfg[:failure_email_to]
@@ -273,13 +305,15 @@ class Batch
             #
             # @param msg [Mail] The message whose content is to be saved.
             # @param path [String] The path to the file to be created.
-            def save_msg_to_file(msg, path)
-                # TODO: archive(path)
+            # @param options [Hash] An options hash; see FileUtils.archive for
+            #   details of supported option settings.
+            def save_msg_to_file(msg, path, options = {})
+                FileUtils.archive(path, options)
                 file = File.open(path, "w")
                 in_html = false
                 msg.html_part.to_s.each_line do |line|
                     line.chomp!
-                    in_html ||= (line == '<html>')
+                    in_html ||= (line =~ /^<html/i)
                     if in_html
                         file.puts line
                         file.puts "<title>#{msg.subject}</title>" if line =~ /<head>/
