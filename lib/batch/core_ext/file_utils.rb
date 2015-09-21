@@ -4,6 +4,11 @@ require 'date'
 
 module FileUtils
 
+    # Set the default archive directory for use on subsequent calls to #archive.
+    attr_accessor :archive_dir
+    module_function :archive_dir, :archive_dir=
+
+
     # Archive existing files at +paths+, where +paths+ is one or more
     # Dir#glob patterns. Archiving consists of renaming files to include a
     # timestamp in the file name. This permits multiple copies of the same
@@ -26,7 +31,7 @@ module FileUtils
         else
             options = {archive_copies: 10}
         end
-        archive_dir = options[:archive_dir]
+        archive_dir = options[:archive_dir] || @archive_dir
         archive_copies = options[:archive_copies]
         if archive_copies && 1 > archive_copies
             raise ArgumentError, ":archive_copies option must be positive"
