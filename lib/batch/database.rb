@@ -62,7 +62,7 @@ class Batch
                 if purge_job_runs.count > 0
                     log.detail "Purging log records for #{purge_job_runs.count} job runs"
                     JobRunLog.where(job_run: purge_job_runs).delete
-                    JobRun.where(job_run: purge_job_runs).update(purged: true)
+                    JobRun.where(job_run: purge_job_runs).update(job_purged_flag: true)
                 end
             end
 
