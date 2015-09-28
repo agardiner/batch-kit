@@ -50,10 +50,12 @@ class Batch
                         Console.replace_console_logger(logger: 'batch')
                     when :java_util_logging
                         require 'color_console/java_util_logger'
-                        Console.replace_console_logger(level_labels: {
-                            Java::JavaUtilLogging::Level::FINE => 'DETAIL',
-                            Java::JavaUtilLogging::Level::FINER => 'TRACE'
-                        })
+                        Console.replace_console_logger(
+                            level: Java::JavaUtilLogging::Level::FINE,
+                            level_labels: {
+                                Java::JavaUtilLogging::Level::FINE => 'DETAIL',
+                                Java::JavaUtilLogging::Level::FINER => 'TRACE'
+                            })
                     else
                         require 'color_console'
                     end
