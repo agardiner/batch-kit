@@ -170,8 +170,8 @@ class Batch
         def self.included(cls)
             if (defined?(Batch::Job) && Batch::Job == cls) ||
                 (defined?(Batch::ActsAsJob) && cls.include?(Batch::ActsAsJob))
-                Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do
-                    cleanup_resources
+                Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do |run, job_obj, ok|
+                    job_obj.cleanup_resources
                 end
             end
         end
