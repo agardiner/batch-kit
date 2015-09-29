@@ -10,11 +10,11 @@ class Batch
         class Definition < Definable
 
             # @!attribute :job_class [Class] The class that defines the job.
-            # @!attribute :job_method [Symbol] The method that is run to execute
+            # @!attribute :method_name [Symbol] The method that is run to execute
             #   the job.
             # @!attribute :computer [String] The name of the machine on which the
             #   job was instantiated.
-            # @!attribute :job_file [String] The name of the file containing the job
+            # @!attribute :file [String] The name of the file containing the job
             #   code.
             # @!attribute :do_not_track [Boolean] By default, job executions may be
             #   recorded (if a persistence layer is available). This attribute can be
@@ -22,8 +22,6 @@ class Batch
             # @!attribute :tasks [Hash<Task::Definition>] A hash of task method names to
             #   Task::Definition objects capturing details of each task that is defined
             #   for this Job::Definition.
-            # @!attribute :job_runs [Array<Job::Run>] An array of Job::Run instances for
-            #   each run of this job in the current Ruby execution.
             # @!attribute :job_id [Fixnum] A unique id for this Job::Definition, as
             #   assigned by the persistence layer.
             # @!attribute :job_version [Fixnum] A version number for the job.
