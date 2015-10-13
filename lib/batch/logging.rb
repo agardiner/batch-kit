@@ -69,11 +69,11 @@ class Batch
                     if RUBY_PLATFORM == 'java'
                         LogManager.log_framework = :java_util_logging
                     else
-                        log4r = require 'log4r' rescue nil
-                        if log4r.nil?
-                            LogManager.log_framework = :stdout
-                        else
+                        begin
+                            require 'log4r'
                             LogManager.log_framework = :log4r
+                        rescue LoadError
+                            LogManager.log_framework = :stdout
                         end
                     end
                 end
