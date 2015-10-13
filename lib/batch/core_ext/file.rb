@@ -2,9 +2,18 @@ class Batch
 
     module FileExtensions
 
-        # Return just the name (without any extension) of a path.
-        def nameonly(path)
-            File.basename(path, File.extname(path))
+        module ClassMethods
+
+            # Return just the name (without any extension) of a path.
+            def nameonly(path)
+                File.basename(path, File.extname(path))
+            end
+
+        end
+
+
+        def self.included(cls)
+            cls.extend(ClassMethods)
         end
 
     end
