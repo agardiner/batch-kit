@@ -113,6 +113,13 @@ class Batch
                 Batch::Events.subscribe(Job::Run, 'failure'){ |jr, obj, ex| obj.instance_exec(ex, &blk) } if blk
             end
 
+
+            # Defines a handler to be invoked if the job ends successfully
+            def on_success(mthd = nil, &blk)
+                Batch::Events.subscribe(Job::Run, 'success'){ |jr, obj| obj.send(mthd) } if mthd
+                Batch::Events.subscribe(Job::Run, 'success'){ |jr, obj| obj.instance_exec(&blk) } if blk
+            end
+
         end
 
 
