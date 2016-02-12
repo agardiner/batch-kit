@@ -61,8 +61,10 @@ class Batch
                     where{job_start_time < purge_date}.map(:job_run)
                 if purge_job_runs.count > 0
                     log.detail "Purging log records for #{purge_job_runs.count} job runs"
-                    JobRunLog.where(job_run: purge_job_runs).delete
-                    JobRun.where(job_run: purge_job_runs).update(job_purged_flag: true)
+                    purge_job_runs.each_slice(1000).each do |purge_ids|
+                        JobRunLog.where(job_run: purge_ids).delete
+                        JobRun.where(job_run: purge_ids).update(job_purged_flag: true)
+                    end
                 end
             end
 
@@ -72,9 +74,11 @@ class Batch
                 purge_job_runs = JobRun.where{job_start_time < purge_date}.map(:job_run)
                 if purge_job_runs.count > 0
                     log.detail "Purging job and task run records for #{purge_job_runs.count} job runs"
-                    JobRunArg.where(job_run: purge_job_runs).delete
-                    TaskRun.where(job_run: purge_job_runs).delete
-                    JobRun.where(job_run: purge_job_runs).delete
+                    purge_job_runs.each_slice(1000).each do |purge_ids|
+                        JobRunArg.where(job_run: purge_ids).delete
+                        TaskRun.where(job_run: purge_ids).delete
+                        JobRun.where(job_run: purge_ids).delete
+                    end
                 end
             end
 
@@ -84,8 +88,10 @@ class Batch
                 purge_requests = Request.where{request_launched_at < purge_date}.map(:request_id)
                 if purge_requests.count > 0
                     log.detail "Purging request records for #{purge_requests.count} requests"
-                    Request.where(request_id: purge_requests).delete
-                    Requestor.where(request_id: purge_requests).delete
+                    purge_requests.each_slice(1000).each do |purge_ids|
+                        Request.where(request_id: purge_ids).delete
+                        Requestor.where(request_id: purge_ids).delete
+                    end
                 end
             end
 
@@ -95,9 +101,11 @@ class Batch
                     where(batch_job_run__job_id: nil).map(:job_id)
                 if purge_jobs.count > 0
                     log.detail "Purging #{purge_jobs.count} old jobs"
-                    JobRunFailure.where(job_id: purge_jobs).delete
-                    Task.where(job_id: purge_jobs).delete
-                    Job.where(job_id: purge_jobs).delete
+                    purge_jobs.each_slice(1000).each do |purge_ids|
+                        JobRunFailure.where(job_id: purge_ids).delete
+                        Task.where(job_id: purge_ids).delete
+                        Job.where(job_id: purge_ids).delete
+                    end
                 end
             end
         end
