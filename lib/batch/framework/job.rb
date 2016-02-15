@@ -20,7 +20,6 @@ class Batch
         def self.inherited(sub_class)
             sub_class.class_eval do
                 include ActsAsJob
-                on_failure{ |ex| log.error ex.message }
             end
         end
 
@@ -58,6 +57,17 @@ class Batch
 
     Batch::Events.subscribe(Task::Run, 'post-execute') do |run, obj, *args|
         Console.title = run.job_run.label
+    end
+
+
+    # Add unhandled exception logging
+    Batch::Events.subscribe(Runnable, 'failure') do |run, obj, ex|
+        unless (oid = ex.object_id) == @last_id
+            @last_id = oid
+            # Strip out framework methods from backtrace
+            ex.backtrace.reject!{ |f| f =~ /batch.lib.batch.framework/ }
+            obj.log.error ex
+        end
     end
 
 end
