@@ -195,7 +195,10 @@ class Batch
 
 
         # Replaces placeholder expressions in a property expression to return a
-        # property value for a job, task, etc.
+        # property value for a job, task, etc. Property expressions may contain
+        # both references to arguments passed to a method, as well as Ruby
+        # expressions. Both are indicated by %{} or ${} delimiters surrounding
+        # the expression to be evaluated and replaced.
         #
         # @param property_expr [String] The expression to be evaluated.
         # @param instance_obj [Object] The object against which Ruby expressions
