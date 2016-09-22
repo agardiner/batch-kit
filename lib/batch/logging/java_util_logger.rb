@@ -43,6 +43,8 @@ class Batch
                 end
                 @log_file = log_path
                 if log_path
+                    # Java logger does not follow changes in working directory via Dir.chdir
+                    log_path = File.absolute_path(log_path)
                     FileUtils.mkdir_p(File.dirname(log_path))
                     fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
                     if defined?(Console::JavaUtilLogger)
