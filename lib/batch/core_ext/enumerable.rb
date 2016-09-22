@@ -3,6 +3,26 @@ require 'thread'
 
 module Enumerable
 
+    # Maps each item in the Enumerable, surrounding it with the +left+ and +right+
+    # strings. If +right+ is not specified, it is set to the same string as +left+,
+    # which in turn is defaulted to the double-quote character.
+    def surround(left = '"', right = left)
+        self.map{ |item| "#{left}#{item}#{right}" }
+    end
+
+
+    # Surrounds each item in the Enumerable with single quotes.
+    def squote
+        self.surround("'")
+    end
+
+
+    # Surrounds each item in the Enumerable with double quotes.
+    def dquote
+        self.surround('"')
+    end
+
+
     # Convenience function for spawning multiple threads to do a common task,
     # driven by the contents of this enumerable. Each entry in self will be
     # be yielded to a new thread, which will then call the supplied block with
