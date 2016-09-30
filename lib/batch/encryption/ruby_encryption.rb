@@ -96,7 +96,7 @@ class Batch
         # @return [String] A base-64 encoded String.
         def base64_encode(bytes)
             bytes = [bytes] if bytes.is_a?(String)
-            bytes.pack('m')
+            bytes.pack('m').chomp
         end
         module_function :base64_encode
 
