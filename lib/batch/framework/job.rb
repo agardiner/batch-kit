@@ -29,6 +29,9 @@ class Batch
         def self.run
             job = self.new
             job.parse_arguments
+            unless self.job.method_name
+                raise "No job entry method has been defined; use job :<method_name> or job do ... end in your class"
+            end
             job.send(self.job.method_name)
         end
 
