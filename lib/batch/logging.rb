@@ -137,6 +137,7 @@ class Batch
                 when NilClass, ''
                     name = 'batch'
                 when /^batch/
+                when /\./
                 when String
                     name = "batch.#{name}"
                 end
