@@ -24,12 +24,23 @@ class Batch
         end
 
 
+        # A class variable for controlling whether jobs run; defaults to true.
+        # Provides a means for orchestration programs to prevent the running
+        # of jobs on require when jobs need to be runnable as standalone progs.
+        @@enabled = true
+        def self.enabled=(val)
+            @@enabled = val
+        end
+
+
         # A method that instantiates an instance of this job, parses
         # arguments from the command-line, and then executes the job.
         def self.run
-            job = self.new
-            job.parse_arguments
-            job.send(self.job.method_name)
+            if @@enabled
+                job = self.new
+                job.parse_arguments
+                job.send(self.job.method_name)
+            end
         end
 
 
