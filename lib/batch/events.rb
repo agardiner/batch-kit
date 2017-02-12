@@ -6,11 +6,12 @@ class Batch
         # Records subscription details
         class Subscription
 
-            attr_reader :source, :callback
+            attr_reader :source, :callback, :raise_on_error
 
 
-            def initialize(source, callback)
+            def initialize(source, options, callback)
                 @source = source
+                @raise_on_error = options.fetch(:raise_on_error, true)
                 @callback = callback
             end
 
@@ -46,12 +47,15 @@ class Batch
             # @param source [Object] The type of source object from which to
             #   listen for events.
             # @param event [String] The name of the event to subscribe to.
-            # @param position [Fixnum] The position within the list to insert
-            #   the subscriber. Default is to add to the end of the list.
+            # @param options [Hash] An options hash defining optional settings
+            #   for the subscription.
+            # @option options [Fixnum] :position The position within the list to
+            #   insert the subscriber. Default is to add to the end of the list.
             # @param callback [Proc] A block to be invoked when the event occurs.
-            def subscribe(source, event, position = -1, &callback)
+            def subscribe(source, event, options = {}, &callback)
                 @log.trace "Adding subscriber for #{source} event '#{event}'" if @log
-                subscribers[event].insert(position, Subscription.new(source, callback))
+                position = options.fetch(:position, -1)
+                subscribers[event].insert(position, Subscription.new(source, options, callback))
             end
 
 
@@ -84,8 +88,12 @@ class Batch
                                 count += 1
                                 res &&= r
                             rescue StandardError => ex
-                                STDERR.puts "Exception in '#{event}' event listener for #{source}: #{ex}\n" +
-                                    "  at: #{ex.backtrace[0...10].join("\n")}"
+                                if sub.raise_on_error
+                                    raise
+                                else
+                                    STDERR.puts "Exception in '#{event}' event listener for #{source}: #{ex}\n" +
+                                        "  at: #{ex.backtrace[0...10].join("\n")}"
+                                end
                             end
                         end
                     end

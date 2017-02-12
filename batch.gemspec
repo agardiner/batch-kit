@@ -12,4 +12,5 @@ GEMSPEC = Gem::Specification.new do |s|
     s.homepage = 'https://github.com/agardiner/batch'
     s.require_paths = ['lib']
     s.files = ['README.md', 'LICENSE'] + Dir['lib/**/*.rb']
+    s.has_rdoc = 'yard'
 end

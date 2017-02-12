@@ -120,6 +120,9 @@ class Batch
             end
 
 
+            # Record the start of a job run
+            #
+            # @param job_run [JobRun] The JobRun instance that has commenced.
             def job_start(job_run)
                 self.job_last_run_at = job_run.start_time
                 self.job_run_count += 1
@@ -127,6 +130,9 @@ class Batch
             end
 
 
+            # Record the successful completion of the JobRun.
+            #
+            # @param job_run [JobRun] The JobRun instance that has completed.
             def job_success(job_run)
                 self.job_success_count += 1
                 n = self.job_success_count
@@ -142,18 +148,29 @@ class Batch
             end
 
 
+            # Record the failure of a JobRun.
+            #
+            # @param job_run [JobRun] The JobRun instance that has failed.
             def job_failure(job_run)
                 self.job_fail_count += 1
                 self.save
             end
 
 
+            # Record that a JobRun has been aborted.
+            #
+            # @param job_run [JobRun] The JobRun instance that has aborted.
             def job_abort(job_run)
                 self.job_abort_count += 1
                 self.save
             end
 
 
+            # Record that a JobRun has timed out. This happens when the database
+            # finds an instance in the table that has been running for a long
+            # period without any activity.
+            #
+            # @param job_run [JobRun] The JobRun instance that has aborted.
             def job_timeout(job_run)
                 self.job_abort_count += 1
                 self.save

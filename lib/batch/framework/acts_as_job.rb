@@ -3,17 +3,20 @@ class Batch
     # When included into a class, marks the class as a Batch job.
     # The including class has the following class methods added, which act as a
     # DSL for specifying the job properties and behaviour:
-    # - #desc A method for setting a description for a subsequent job or task
-    # - #job Defines a job entry method
-    # - #task Defines a task method
-    # - #job_definition Returns the Job::Definition object for the including
-    #   class
-    # - #on_failure defines a callback to be called if the job encounters an
-    #   unhandled exception.
+    # - {ClassMethods#desc desc} A method for setting a description for a
+    #   subsequent job or task
+    # - {ClassMethods#job job} Defines a job entry method
+    # - {ClassMethods#task task} Defines a task method
+    # - {ClassMethods#job_definition job_definition} Returns the Job::Definition
+    #   object for the including class
+    # - {ClassMethods#on_success on_success} defines a callback to be called if
+    #   the job completes successfully.
+    # - {ClassMethods#on_failure on_failure} defines a callback to be called if
+    #   the job encounters an unhandled exception.
     #
     # Instances of the including class also get the following instance methods:
-    # - #job Returns the Job::Definition for the class
-    # - #job_run Returns the Job::Run associated with this object instance.
+    # - {#job} Returns the Job::Definition for the class
+    # - {#job_run} Returns the Job::Run associated with this object instance.
     module ActsAsJob
 
         # Define methods to be added to the class that includes this module.
@@ -26,7 +29,10 @@ class Batch
             end
 
 
-            # Captures a description for the following task or job definition
+            # Captures a description for the following task or job definition.
+            #
+            # @param desc [String] The description to associate with the next
+            #   task or job that is defined.
             def desc(desc)
                 @__desc__ = desc
             end
@@ -37,6 +43,14 @@ class Batch
             # method must be passed as the first argument.
             # Alternatively, a block may be supplied, which will be used to
             # create the job method.
+            #
+            # @param job_method [Symbol] The name of an existing method that is
+            #   to be the job entry point.
+            # @param job_opts [Hash] Options that affect the job definition.
+            # @option job_opts [Symbol] :method_name The name to be assigned to
+            #   the job method created from the supplied block. Default is
+            #   :execute.
+            # @option job_opts [String] :description A description for the job.
             def job(job_method = nil, job_opts = @__desc__, &body)
                 # If called as an accessor, just return the @__job__
                 if  job_method || job_opts || body
@@ -75,6 +89,16 @@ class Batch
             # method must be passed as the first argument.
             # Alternatively, a block may be supplied, which will be used to
             # create the task method.
+            #
+            # @param task_method [Symbol] The name for the method that is to be
+            #  this task. May be the name of an existing method (in which case
+            #  no block should be supplied), or the name to give to the method
+            #  that will be created from the supplied block.
+            # @param task_opts [Hash] A hash containing options for the task
+            #  being defined.
+            # @option task_opts [Symbol] :method_name The name for the method
+            #  if no symbol was provided as the first argument.
+            # @option job_opts [String] :description A description for the task.
             def task(task_method, task_opts = @__desc__, &body)
                 unless task_method.is_a?(Symbol)
                     task_opts = task_method

@@ -4,20 +4,31 @@ require_relative 'database/schema'
 
 class Batch
 
+    # Implements functionality for persisting details of jobs run in a relational
+    # database, via the Sequel database library.
     class Database
 
 
+        # Instantiate a database back-end for persisting job and task runs.
+        #
+        # @param options [Hash] An options hash, passed on to the
+        #   {Batch::Database::Schema#initialize Schema} instance.
         def initialize(options = {})
             @options = options
             @schema = Schema.new(options)
         end
 
 
+        # Log database messages under the batch.database namespace.
         def log
             @log ||= Batch::LogManager.logger('batch.database')
         end
 
 
+        # Connect to a back-end database for persistence.
+        #
+        # @param args [Array<String>] Connection details to be passed to
+        #  the {Batch::Database::Schema#connect} method.
         def connect(*args)
             @schema.connect(*args)
 
@@ -32,7 +43,7 @@ class Batch
         end
 
 
-        # Purges detail records that are older than the retention threshhold
+        # Purges detail records that are older than the retention threshhold.
         def perform_housekeeping
             # Only do housekeeping once per day
             return if JobRun.where{job_start_time > Date.today}.count > 0

@@ -7,8 +7,12 @@ class Batch
     #
     # In addition, there are some further conveniences added on:
     # - Items can be accessed by either [] (using a String or Symbol key) or as
-    #   methods on the Config object, i.e. config['Foo'], config[:foo] and
-    #   config.foo are all equivalent.
+    #   methods on the Config object, i.e. the following are all equivalent:
+    #
+    #     config['Foo']
+    #     config[:foo]
+    #     config.foo
+    #
     # - Contents can be loaded from:
     #   - an existing Hash object
     #   - a properties file using [Section] and KEY=VALUE syntax
@@ -28,10 +32,10 @@ class Batch
     # lookup the value.
     #
     # @note As this Config object is case and String/Symbol insensitive,
-    # different case and type keys that convert to the same lookup key are
-    # considered the same. The practical implication is that you can't have two
-    # different values in this Config object where the keys differ only in case
-    # and/or String/Symbol class.
+    #   different case and type keys that convert to the same lookup key are
+    #   considered the same. The practical implication is that you can't have
+    #   two different values in this Config object where the keys differ only
+    #   in case and/or String/Symbol class.
     class Config < Hash
 
         # Create a new Config object, and initialize it from the specified
@@ -132,8 +136,10 @@ class Batch
         #
         # @param path [String] The path to the properties or YAML file to be
         #   loaded.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an error if an
-        #   unrecognised placeholder variable is encountered in the file.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] @raise_on_unknown_var Whether to raise an
+        #   error if an unrecognised placeholder variable is encountered in the
+        #   file.
         def load(path, options = {})
             props = case File.extname(path)
             when /\.yaml/i then self.load_yaml(path, options)
@@ -234,8 +240,10 @@ class Batch
         # Merge the contents of the specified +hsh+ into a new Config object.
         #
         # @param hsh [Hash] The Hash object to merge with this Config object.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an exception if
-        #   an unrecognised placeholder variable is encountered in +hsh+.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] @raise_on_unknown_var Whether to raise an
+        #   error if an unrecognised placeholder variable is encountered in the
+        #   file.
         # @return A new Config object with the combined contents of this Config
         #   object plus the contents of +hsh+.
         def merge(hsh, options = {})
