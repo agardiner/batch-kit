@@ -84,15 +84,11 @@ class Batch
             #   executing the process.
             # @yield at the point when the process should execute.
             def around_execute(process_obj, *args)
-                if process_obj.job_run
+              if process_obj.job_run && process_obj.job_run.status == :executing
                     raise "There is already a job run active (#{process_obj.job_run}) for #{process_obj}"
                 end
                 process_obj.instance_variable_set(:@__job_run__, self)
-                begin
-                    super
-                ensure
-                    process_obj.instance_variable_set(:@__job_run__, nil)
-                end
+                super
             end
 
 
