@@ -138,10 +138,25 @@ class Batch
             end
 
 
-            # Defines a handler to be invoked if the job ends successfully
+            # Defines a handler to be invoked if the job ends successfully.
             def on_success(mthd = nil, &blk)
                 Batch::Events.subscribe(Job::Run, 'success'){ |jr, obj| obj.send(mthd) } if mthd
                 Batch::Events.subscribe(Job::Run, 'success'){ |jr, obj| obj.instance_exec(&blk) } if blk
+            end
+
+
+            # Defines a handler to be invoked on completion of the job, whether
+            # the job completes successfully or fails. The handler may be specified
+            # as either a method name and/or via a block. Multiple calls to this
+            # method can be made to register multiple callbacks if desired.
+            #
+            # @param mthd [Symbol] The name of an existing method on the including
+            #   class. This method will be called with the Job::Run object that
+            #   represents the completing job run.
+            # 
+            def on_completion(mthd = nil, &blk)
+                Batch::Events.subscribe(Job::Run, 'post-execute'){ |jr, obj, ok| obj.send(mthd, jr) } if mthd
+                Batch::Events.subscribe(Job::Run, 'post-execute'){ |jr, obj, ok| obj.instance_exec(jr, &blk) } if blk
             end
 
         end
