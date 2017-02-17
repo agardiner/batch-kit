@@ -1,4 +1,4 @@
-require 'batch/core_ext/integer'
+require 'batch/core_ext/numeric'
 require 'batch/core_ext/string'
 
 
@@ -156,7 +156,7 @@ class Batch
                         row
                     end
                     case val
-                    when Fixnum
+                    when Numeric
                         val = val.with_commas
                         cls = 'right' unless cls
                     when Date, Time, DateTime
