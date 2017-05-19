@@ -50,6 +50,8 @@ class Batch
         #   file.
         # @option options [Boolean] :use_erb If true, the contents of +file+
         #   is first run through ERB.
+        # @option options [Binding] :binding The binding to use when evaluating
+        #   expressions in ERB
         # @return [Config] A new Config object populated from +file+ and
         #   +props+, where placeholder variables have been expanded.
         def self.load(file, props = nil, options = {})
@@ -177,8 +179,12 @@ class Batch
         # @option options [Boolean] :use_erb If true, the contents of +prop_file+
         #   is first passed through ERB before being processed. This allows for
         #   the use of <% %> and <%= %> directives in +prop_file+. The binding
-        #   passed to ERB is this Config object. If not specified, ERB is used
-        #   if the file is found to contain the string '<%'.
+        #   passed to ERB is the value of any :binding option specified, or else
+        #   this Config object. If not specified, ERB is used if the file is
+        #   found to contain the string '<%'.
+        # @option options [Binding] :binding The binding for ERB to use when
+        #   processing expressions. Defaults to this Config instance if not
+        #   specified.
         # @return [Hash] The parsed contents of the file as a Hash.
         def load_properties(prop_file, options = {})
             str = read_file(prop_file, options)
@@ -194,8 +200,12 @@ class Batch
         # @option options [Boolean] :use_erb If true, the contents of +yaml_file+
         #   are run through ERB before being parsed as YAML. This allows for use
         #   of <% %> and <%= %> directives in +yaml_file+. The binding passed to
-        #   ERB is this Config object. If not specified, ERB is used if the file
-        #   is found to contain the string '<%'.
+        #   ERB is the value of any :binding option specified, or else this
+        #   Config object. If not specified, ERB is used if the file is found to
+        #   contain the string '<%'.
+        # @option options [Binding] :binding The binding for ERB to use when
+        #   processing expressions. Defaults to this Config instance if not
+        #   specified.
         # @return [Object] The results of parsing the YAML contents of +yaml_file+.
         def load_yaml(yaml_file, options = {})
             require 'yaml'
@@ -441,7 +451,7 @@ class Batch
         private
 
 
-        # Reads the contents of +file+ into a String. The +file+ is passed 
+        # Reads the contents of +file+ into a String. The +file+ is passed
         # through ERB if the :use_erb option is true, or if the options does
         # not contain the :use_erb key and the file does contain the string
         # '<%'.
@@ -449,7 +459,7 @@ class Batch
             str = IO.read(file)
             if (options.has_key?(:use_erb) && options[:use_erb]) || str =~ /<%/
                 require 'erb'
-                str = ERB.new(str).result
+                str = ERB.new(str).result(options[:binding] || binding)
             end
             str
         end
