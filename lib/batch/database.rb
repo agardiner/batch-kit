@@ -109,7 +109,7 @@ class Batch
             # Purge jobs with no runs
             @schema.connection.transaction do
                 purge_jobs = Job.left_join(JobRun, :job_id => :job_id).
-                    where(batch_job_run__job_id: nil).map(:job_id)
+                    where(batch_job_run__job_id: nil).select(:batch_job__job_id).map(:job_id)
                 if purge_jobs.count > 0
                     log.detail "Purging #{purge_jobs.count} old jobs"
                     purge_jobs.each_slice(1000).each do |purge_ids|
