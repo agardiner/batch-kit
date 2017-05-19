@@ -185,13 +185,13 @@ class Batch
                 Job[job_run.job_id].job_start(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'success') do |job_run, job_obj|
-                Job[job_run.job_id].job_success(job_run) unless job_run.persist?
+                Job[job_run.job_id].job_success(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'failure') do |job_run, job_obj|
-                Job[job_run.job_id].job_failure(job_run) unless job_run.persist?
+                Job[job_run.job_id].job_failure(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'abort') do |job_run, job_obj|
-                Job[job_run.job_id].job_abort(job_run) unless job_run.persist?
+                Job[job_run.job_id].job_abort(job_run) if job_run.persist?
             end
 
         end
