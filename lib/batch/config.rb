@@ -69,7 +69,7 @@ class Batch
                 if match = /^\s*\[([A-Za-z0-9_ ]+)\]\s*$/.match(line)
                     # Section heading
                     props = hsh[match[1]] = {}
-                elsif match = /^\s*([A-Za-z0-9_]+)\s*=\s*([^#]+)/.match(line)
+                elsif match = /^\s*([A-Za-z0-9_\.]+)\s*=\s*([^#]+)/.match(line)
                     # Property setting
                     val = match[2]
                     props[match[1]] = case val
