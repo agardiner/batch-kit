@@ -23,7 +23,7 @@ class Batch
             end
 
 
-            # Register a resource type for automated resource management
+            # Register a resource type for automated resource management.
             #
             # @param rsrc_cls [Class] The class of resource to be managed. This
             #   must be the type of the object that will be returned when an
@@ -40,8 +40,8 @@ class Batch
             #   to be called on the resource to dispose of it. Defaults to
             #   :close.
             def register(rsrc_cls, helper_mthd, options = {}, &body)
-                if resource_types.has_key?(rsrc_cls)
-                    raise ArgumentError, "Resource class #{rsrc_cls} is already registered"
+                if ResourceHelper.method_defined?(helper_mthd)
+                    raise ArgumentError, "Resource acquisition method #{helper_mthd} is already registered"
                 end
                 unless body
                     open_mthd = options.fetch(:acquisition_method, :open)
@@ -50,7 +50,12 @@ class Batch
                 disp_mthd = options.fetch(:disposal_method, :close)
 
                 if rsrc_cls.method_defined?(disp_mthd)
-                    resource_types[rsrc_cls] = rsrc_cls.instance_method(disp_mthd)
+                    if (m = resource_types[rsrc_cls]) && m.name != disp_mthd
+                        raise ArgumentError, "Resource class #{rsrc_cls} has already been registered" +
+                            " with a different disposal method (##{m.name})"
+                    else
+                        resource_types[rsrc_cls] = rsrc_cls.instance_method(disp_mthd)
+                    end
                 else
                     raise ArgumentError, "No method named '#{disp_mthd}' is defined on #{rsrc_cls}"
                 end
@@ -76,6 +81,10 @@ class Batch
             end
 
 
+            # Define the helper method to acquire a resource, publish events about
+            # the resource lifecycle, and track the usage of the resource to
+            # ensure we know about unreleased resources and can clean then up at
+            # the appropriate time when the owning object is done with them.
             def add_aspect(rsrc_cls, helper_mthd, disp_mthd)
                 mthd = ResourceHelper.instance_method(helper_mthd)
                 ResourceHelper.class_eval do
@@ -85,7 +94,7 @@ class Batch
                             begin
                                 result = mthd.bind(self).call(*args)
                                 unless rsrc_cls === result
-                                    raise ArgumentError, "Returned object is of type #{
+                                    raise ArgumentError, "Returned resource is of type #{
                                         result.class.name}, not #{rsrc_cls}"
                                 end
                                 # Override disposal method on this acquired instance
