@@ -1,8 +1,8 @@
 GEMSPEC = Gem::Specification.new do |s|
     s.name = "batch"
-    s.version = "0.1"
+    s.version = "0.2"
     s.authors = ["Adam Gardiner"]
-    s.date = "2015-01-05"
+    s.date = "2017-06-22"
     s.summary = "Batch is a framework for creating batch jobs with support for logging, configuration, and process management."
     s.description = <<-EOQ
         Batch is a framework that provides a number of capabilities to make the creation of jobs simpler,
