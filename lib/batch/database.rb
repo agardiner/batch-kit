@@ -65,6 +65,12 @@ class Batch
                 end
             end
 
+            # Purge locks that expired 6+ hours ago
+            @schema.connection.transaction do
+                purge_date = Time.now - 6 * 60 * 60
+                Lock.where{lock_expires_at < purge_date}.delete
+            end
+
             # Purge log records for old job runs
             @schema.connection.transaction do
                 purge_date = Date.today - @options.fetch(:log_retention_days, 60)
