@@ -7,8 +7,12 @@ class Batch
     #
     # In addition, there are some further conveniences added on:
     # - Items can be accessed by either [] (using a String or Symbol key) or as
-    #   methods on the Config object, i.e. config['Foo'], config[:foo] and
-    #   config.foo are all equivalent.
+    #   methods on the Config object, i.e. the following are all equivalent:
+    #
+    #     config['Foo']
+    #     config[:foo]
+    #     config.foo
+    #
     # - Contents can be loaded from:
     #   - an existing Hash object
     #   - a properties file using [Section] and KEY=VALUE syntax
@@ -28,10 +32,10 @@ class Batch
     # lookup the value.
     #
     # @note As this Config object is case and String/Symbol insensitive,
-    # different case and type keys that convert to the same lookup key are
-    # considered the same. The practical implication is that you can't have two
-    # different values in this Config object where the keys differ only in case
-    # and/or String/Symbol class.
+    #   different case and type keys that convert to the same lookup key are
+    #   considered the same. The practical implication is that you can't have
+    #   two different values in this Config object where the keys differ only
+    #   in case and/or String/Symbol class.
     class Config < Hash
 
         # Create a new Config object, and initialize it from the specified
@@ -46,6 +50,8 @@ class Batch
         #   file.
         # @option options [Boolean] :use_erb If true, the contents of +file+
         #   is first run through ERB.
+        # @option options [Binding] :binding The binding to use when evaluating
+        #   expressions in ERB
         # @return [Config] A new Config object populated from +file+ and
         #   +props+, where placeholder variables have been expanded.
         def self.load(file, props = nil, options = {})
@@ -63,7 +69,7 @@ class Batch
                 if match = /^\s*\[([A-Za-z0-9_ ]+)\]\s*$/.match(line)
                     # Section heading
                     props = hsh[match[1]] = {}
-                elsif match = /^\s*([A-Za-z0-9_]+)\s*=\s*([^#]+)/.match(line)
+                elsif match = /^\s*([A-Za-z0-9_\.]+)\s*=\s*([^#]+)/.match(line)
                     # Property setting
                     val = match[2]
                     props[match[1]] = case val
@@ -132,8 +138,10 @@ class Batch
         #
         # @param path [String] The path to the properties or YAML file to be
         #   loaded.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an error if an
-        #   unrecognised placeholder variable is encountered in the file.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] @raise_on_unknown_var Whether to raise an
+        #   error if an unrecognised placeholder variable is encountered in the
+        #   file.
         def load(path, options = {})
             props = case File.extname(path)
             when /\.yaml/i then self.load_yaml(path, options)
@@ -171,8 +179,12 @@ class Batch
         # @option options [Boolean] :use_erb If true, the contents of +prop_file+
         #   is first passed through ERB before being processed. This allows for
         #   the use of <% %> and <%= %> directives in +prop_file+. The binding
-        #   passed to ERB is this Config object. If not specified, ERB is used
-        #   if the file is found to contain the string '<%'.
+        #   passed to ERB is the value of any :binding option specified, or else
+        #   this Config object. If not specified, ERB is used if the file is
+        #   found to contain the string '<%'.
+        # @option options [Binding] :binding The binding for ERB to use when
+        #   processing expressions. Defaults to this Config instance if not
+        #   specified.
         # @return [Hash] The parsed contents of the file as a Hash.
         def load_properties(prop_file, options = {})
             str = read_file(prop_file, options)
@@ -188,8 +200,12 @@ class Batch
         # @option options [Boolean] :use_erb If true, the contents of +yaml_file+
         #   are run through ERB before being parsed as YAML. This allows for use
         #   of <% %> and <%= %> directives in +yaml_file+. The binding passed to
-        #   ERB is this Config object. If not specified, ERB is used if the file
-        #   is found to contain the string '<%'.
+        #   ERB is the value of any :binding option specified, or else this
+        #   Config object. If not specified, ERB is used if the file is found to
+        #   contain the string '<%'.
+        # @option options [Binding] :binding The binding for ERB to use when
+        #   processing expressions. Defaults to this Config instance if not
+        #   specified.
         # @return [Object] The results of parsing the YAML contents of +yaml_file+.
         def load_yaml(yaml_file, options = {})
             require 'yaml'
@@ -234,8 +250,10 @@ class Batch
         # Merge the contents of the specified +hsh+ into a new Config object.
         #
         # @param hsh [Hash] The Hash object to merge with this Config object.
-        # @param raise_on_unknown_var [Boolean] Whether to raise an exception if
-        #   an unrecognised placeholder variable is encountered in +hsh+.
+        # @param options [Hash] An options hash.
+        # @option options [Boolean] @raise_on_unknown_var Whether to raise an
+        #   error if an unrecognised placeholder variable is encountered in the
+        #   file.
         # @return A new Config object with the combined contents of this Config
         #   object plus the contents of +hsh+.
         def merge(hsh, options = {})
@@ -433,7 +451,7 @@ class Batch
         private
 
 
-        # Reads the contents of +file+ into a String. The +file+ is passed 
+        # Reads the contents of +file+ into a String. The +file+ is passed
         # through ERB if the :use_erb option is true, or if the options does
         # not contain the :use_erb key and the file does contain the string
         # '<%'.
@@ -441,7 +459,7 @@ class Batch
             str = IO.read(file)
             if (options.has_key?(:use_erb) && options[:use_erb]) || str =~ /<%/
                 require 'erb'
-                str = ERB.new(str).result
+                str = ERB.new(str).result(options[:binding] || binding)
             end
             str
         end

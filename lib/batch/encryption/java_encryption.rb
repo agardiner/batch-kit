@@ -48,7 +48,24 @@ class Batch
         #   +clear_text+ value.
         def encrypt(key_text, clear_text, salt = SALT)
             key = generate_key(key_text, salt)
-            cipher = Cipher.getInstance(CIPHER_ALGORITHM)
+            encipher(key, clear_text)
+        end
+        module_function :encrypt
+
+
+        # Encipher the supplied +clear_text+, using +key+ as the encryption key.
+        #
+        # Note: this method is possibly less secure than #encrypt, since it uses
+        # the actual key in the enciphering, rather than an SHA1 hash of the key.
+        #
+        # @param key [SecretKeySpec] The key to use for encryption.
+        # @param clear_text [String] The cleartext string to be encrypted.
+        # @param cipher_algorithm [String] The name of the cipher algorithm to
+        #   use when encrypting the clear_text.
+        # @return [String] A base-64 encoded string representing the encrypted
+        #   +clear_text+ value.
+        def encipher(key, clear_text, cipher_algorithm = CIPHER_ALGORITHM)
+            cipher = Cipher.getInstance(cipher_algorithm)
             cipher.init(Cipher::ENCRYPT_MODE, key)
             params = cipher.getParameters()
             iv = params.getParameterSpec(IvParameterSpec.java_class).getIV()
@@ -60,7 +77,7 @@ class Batch
             buffer.put(cipher_bytes)
             base64_encode(buffer_bytes)
         end
-        module_function :encrypt
+        module_function :encipher
 
 
         # Decrypt the supplied +cipher_text+, using +key_text+ as the pass-phrase.
@@ -75,7 +92,21 @@ class Batch
         # @return [String] The clear text that was encrypted.
         def decrypt(key_text, cipher_text, salt = SALT)
             key = generate_key(key_text, salt)
-            cipher = Cipher.getInstance(CIPHER_ALGORITHM)
+            decipher(key, cipher_text)
+        end
+        module_function :decrypt
+
+
+        # Decipher the supplited +cipher_text+, using +key+ as the decipher key.
+        #
+        # @param key [SecretKeySpec] The key used for encryption.
+        # @param cipher_text [String] A base-64 encoded cipher text string that
+        #   is to be decrypted.
+        # @param cipher_algorithm [String] The name of the cipher algorithm used
+        #   to encrypt the clear_text.
+        # @return [String] The clear text that was encrypted.
+        def decipher(key, cipher_text, cipher_algorithm = CIPHER_ALGORITHM)
+            cipher = Cipher.getInstance(cipher_algorithm)
             buffer_bytes = base64_decode(cipher_text)
             # Unpack IV and cipher bytes
             iv_bytes = Java::byte[KEY_DERIVED_LENGTH / 8].new
@@ -86,7 +117,7 @@ class Batch
             cipher.init(Cipher::DECRYPT_MODE, key, IvParameterSpec.new(iv_bytes))
             String.from_java_bytes(cipher.doFinal(cipher_bytes))
         end
-        module_function :decrypt
+        module_function :decipher
 
 
         # Convert a byte array to a base-64 encoded string representation.

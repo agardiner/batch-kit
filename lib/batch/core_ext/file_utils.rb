@@ -2,6 +2,8 @@ require 'fileutils'
 require 'date'
 
 
+# Re-opens the FileUtils module in the Ruby standard library to add new
+# functionality.
 module FileUtils
 
     # Set the default archive directory for use on subsequent calls to #archive.
@@ -17,13 +19,16 @@ module FileUtils
     #
     # The last argument passed may be an options Hash, which can be used
     # to change the default behaviour. Valid options are:
-    # @option options [String] :archive_dir The directory in which to place
+    # @param paths [Array<String|Hash>] A list of paths to be archived. If
+    #   the last item passed to the method is a Hahs, it is treated as an
+    #   an options hash.
+    # @option paths [String] :archive_dir The directory in which to place
     #   archived files. If not specified, archived files are placed in the
     #   same directory.
-    # @option options [Fixnum] :archive_days The number of days for which to
+    # @option paths [Fixnum] :archive_days The number of days for which to
     #   keep archived files. Defaults to nil, meaning there is no maximum
     #   number of days.
-    # @option options [Fixnum] :archive_copies The maximum number of copies
+    # @option paths [Fixnum] :archive_copies The maximum number of copies
     #   to keep of an archived file. Defaults to 10.
     def archive(*paths)
         if paths.last.is_a?(Hash)

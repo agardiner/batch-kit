@@ -4,20 +4,31 @@ require_relative 'database/schema'
 
 class Batch
 
+    # Implements functionality for persisting details of jobs run in a relational
+    # database, via the Sequel database library.
     class Database
 
 
+        # Instantiate a database back-end for persisting job and task runs.
+        #
+        # @param options [Hash] An options hash, passed on to the
+        #   {Batch::Database::Schema#initialize Schema} instance.
         def initialize(options = {})
             @options = options
             @schema = Schema.new(options)
         end
 
 
+        # Log database messages under the batch.database namespace.
         def log
             @log ||= Batch::LogManager.logger('batch.database')
         end
 
 
+        # Connect to a back-end database for persistence.
+        #
+        # @param args [Array<String>] Connection details to be passed to
+        #  the {Batch::Database::Schema#connect} method.
         def connect(*args)
             @schema.connect(*args)
 
@@ -32,7 +43,7 @@ class Batch
         end
 
 
-        # Purges detail records that are older than the retention threshhold
+        # Purges detail records that are older than the retention threshhold.
         def perform_housekeeping
             # Only do housekeeping once per day
             return if JobRun.where{job_start_time > Date.today}.count > 0
@@ -52,6 +63,12 @@ class Batch
                     abort_tasks.each(&:timeout)
                     abort_jobs.each(&:timeout)
                 end
+            end
+
+            # Purge locks that expired 6+ hours ago
+            @schema.connection.transaction do
+                purge_date = Time.now - 6 * 60 * 60
+                Lock.where{lock_expires_at < purge_date}.delete
             end
 
             # Purge log records for old job runs
@@ -97,8 +114,9 @@ class Batch
 
             # Purge jobs with no runs
             @schema.connection.transaction do
-                purge_jobs = Job.left_join(JobRun, :job_id => :job_id).
-                    where(batch_job_run__job_id: nil).map(:job_id)
+                purge_jobs = Job.left_join(:batch_job_run, :job_id => :job_id).
+                    where(Sequel.qualify(:batch_job_run, :job_id) => nil).
+                    select(Sequel.qualify(:batch_job, :job_id)).map(:job_id)
                 if purge_jobs.count > 0
                     log.detail "Purging #{purge_jobs.count} old jobs"
                     purge_jobs.each_slice(1000).each do |purge_ids|

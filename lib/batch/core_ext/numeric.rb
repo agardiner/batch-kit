@@ -1,6 +1,6 @@
 class Batch
 
-    module IntegerExtensions
+    module NumericExtensions
 
         # Converts an integer to a comma-separated string, e.g. 1024 becomes "1,024"
         def with_commas
@@ -12,6 +12,6 @@ class Batch
 end
 
 
-Integer.class_eval do
-    include Batch::IntegerExtensions
+Numeric.class_eval do
+    include Batch::NumericExtensions
 end

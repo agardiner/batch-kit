@@ -3,9 +3,9 @@ require 'etc'
 
 class Batch
 
-    # Captures details of an execution of a job.
     class Job
 
+        # Captures details of an execution of a job.
         class Run < Runnable
 
             # @!attribute :run_by [String] The name of the user that ran this job
@@ -54,7 +54,7 @@ class Batch
             #   run relates.
             # @param job_object [Object] The job object instance from which the
             #   job is being executed.
-            # @param run_arg [Array<Object>] An array of the argument values
+            # @param run_args [Array<Object>] An array of the argument values
             #   passed to the job method.
             def initialize(job_def, job_object, *run_args)
                 raise ArgumentError unless job_def.is_a?(Job::Definition)
@@ -84,15 +84,11 @@ class Batch
             #   executing the process.
             # @yield at the point when the process should execute.
             def around_execute(process_obj, *args)
-                if process_obj.job_run
+              if process_obj.job_run && process_obj.job_run.status == :executing
                     raise "There is already a job run active (#{process_obj.job_run}) for #{process_obj}"
                 end
                 process_obj.instance_variable_set(:@__job_run__, self)
-                begin
-                    super
-                ensure
-                    process_obj.instance_variable_set(:@__job_run__, nil)
-                end
+                super
             end
 
 
@@ -100,8 +96,7 @@ class Batch
             #
             # @param process_obj [Object] Object that is executing the batch
             #   process.
-            # @param result [Object] If +success+ is true, the return value of the
-            #   process. If +success+ is false, the exception that caused it to fail.
+            # @param result [Object] The return value of the process.
             def success(process_obj, result)
                 super
                 process_obj.on_success if process_obj.respond_to?(:on_success)
@@ -112,11 +107,8 @@ class Batch
             #
             # @param process_obj [Object] Object that is executing the batch
             #   process.
-            # @param success [Boolean] True if the process completed without
-            #   throwing an exception.
-            # @param result_or_exception [Object|Exception] If +success+ is true,
-            #   the return value of the process. If +success+ is false, the
-            #   exception that caused it to fail.
+            # @param exception [Exception] The exception that caused the job to
+            #   fail.
             def failure(process_obj, exception)
                 super
                 process_obj.on_failure(exception) if process_obj.respond_to?(:on_failure)
@@ -133,11 +125,14 @@ class Batch
             end
 
 
+            # @return [Boolean] True if the job run should be recorded via any
+            #   persistence layer.
             def persist?
                 !definition.do_not_track
             end
 
 
+            # @return [String] a short representation of this job run.
             def to_s
                 "<Batch::Job::Run label='#{label}'>"
             end

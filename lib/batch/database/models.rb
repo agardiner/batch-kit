@@ -16,8 +16,9 @@ class Batch
             # Locate the MD5 record for the object named +obj_name+ whose type
             # is +obj_type+.
             def self.for(obj_name, obj_type, digest)
-                self.where('UPPER(OBJECT_NAME) = ? AND UPPER(OBJECT_TYPE) = ? AND MD5_DIGEST = ?',
-                           obj_name.upcase, obj_type.upcase, digest).first
+                self.where(Sequel.function(:upper, :object_name) => obj_name.upcase,
+                           Sequel.function(:upper, :object_type) => obj_type.upcase,
+                           :md5_digest => digest).first
             end
 
 
@@ -120,6 +121,9 @@ class Batch
             end
 
 
+            # Record the start of a job run
+            #
+            # @param job_run [JobRun] The JobRun instance that has commenced.
             def job_start(job_run)
                 self.job_last_run_at = job_run.start_time
                 self.job_run_count += 1
@@ -127,6 +131,9 @@ class Batch
             end
 
 
+            # Record the successful completion of the JobRun.
+            #
+            # @param job_run [JobRun] The JobRun instance that has completed.
             def job_success(job_run)
                 self.job_success_count += 1
                 n = self.job_success_count
@@ -142,18 +149,29 @@ class Batch
             end
 
 
+            # Record the failure of a JobRun.
+            #
+            # @param job_run [JobRun] The JobRun instance that has failed.
             def job_failure(job_run)
                 self.job_fail_count += 1
                 self.save
             end
 
 
+            # Record that a JobRun has been aborted.
+            #
+            # @param job_run [JobRun] The JobRun instance that has aborted.
             def job_abort(job_run)
                 self.job_abort_count += 1
                 self.save
             end
 
 
+            # Record that a JobRun has timed out. This happens when the database
+            # finds an instance in the table that has been running for a long
+            # period without any activity.
+            #
+            # @param job_run [JobRun] The JobRun instance that has aborted.
             def job_timeout(job_run)
                 self.job_abort_count += 1
                 self.save
@@ -168,13 +186,13 @@ class Batch
                 Job[job_run.job_id].job_start(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'success') do |job_run, job_obj|
-                Job[job_run.job_id].job_success(job_run) unless job_run.persist?
+                Job[job_run.job_id].job_success(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'failure') do |job_run, job_obj|
-                Job[job_run.job_id].job_failure(job_run) unless job_run.persist?
+                Job[job_run.job_id].job_failure(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'abort') do |job_run, job_obj|
-                Job[job_run.job_id].job_abort(job_run) unless job_run.persist?
+                Job[job_run.job_id].job_abort(job_run) if job_run.persist?
             end
 
         end
@@ -318,7 +336,7 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'execute', 0) do |job_run, job_obj, *args|
+            Batch::Events.subscribe(Batch::Job::Run, 'execute', position: 0) do |job_run, job_obj, *args|
                 JobRun.new(job_run).job_start(job_run) if job_run.persist?
             end
             Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do |job_run, job_obj, ok|
@@ -419,7 +437,7 @@ class Batch
 
 
 
-            Batch::Events.subscribe(Batch::Task::Run, 'execute', 0) do |task_run, job_obj, *args|
+            Batch::Events.subscribe(Batch::Task::Run, 'execute', position: 0) do |task_run, job_obj, *args|
                 TaskRun.new(task_run).task_start(task_run) if task_run.persist?
             end
             Batch::Events.subscribe(Batch::Task::Run, 'post-execute') do |task_run, job_obj, ok|

@@ -1,11 +1,16 @@
 require 'thread'
 
 
+# Re-opens the Ruby standard Enumerable module to add some additional utility
+# methods to all enumerables.
 module Enumerable
 
     # Maps each item in the Enumerable, surrounding it with the +left+ and +right+
     # strings. If +right+ is not specified, it is set to the same string as +left+,
     # which in turn is defaulted to the double-quote character.
+    #
+    # @param left [String] The character to precede each item with.
+    # @param right [String] The character to follow each item with.
     def surround(left = '"', right = left)
         self.map{ |item| "#{left}#{item}#{right}" }
     end
@@ -27,6 +32,14 @@ module Enumerable
     # driven by the contents of this enumerable. Each entry in self will be
     # be yielded to a new thread, which will then call the supplied block with
     # the element.
+    #
+    # @param options [Hash] An options hash.
+    # @option options [Boolean] :abort_on_exception If true, and any thread
+    #   throws an exception during processing, abort processing of the
+    #   collection immediately.
+    # @option options [Integer] :threads The number of threads to use to
+    #   process the collection. Default is no more than 4 (less if the
+    #   collection contains fewer than 4 items).
     def concurrent_each(options = {}, &blk)
         if self.count < 2
             self.each(&blk)

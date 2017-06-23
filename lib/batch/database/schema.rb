@@ -13,12 +13,17 @@ class Batch
 
 
             # Create a batch schema instance
+            #
+            # @param options [Hash] An options hash.
+            # @option options [Symbol] :log_level The level of database messages
+            #   that should be visible (default is :error).
             def initialize(options = {})
                 @log = Batch::LogManager.logger('batch.database.schema')
                 @log.level = options.fetch(:log_level, :error)
             end
 
 
+            # Returns the Sequel database connection.
             def connection
                 @conn
             end
@@ -38,7 +43,7 @@ class Batch
             end
 
 
-            # @return True if the batch database tables have been deployed.
+            # @return true if the batch database tables have been deployed.
             def deployed?
                 @conn.table_exists?(:batch_md5)
             end

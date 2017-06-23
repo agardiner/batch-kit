@@ -137,6 +137,7 @@ class Batch
                 when NilClass, ''
                     name = 'batch'
                 when /^batch/
+                when /\./
                 when String
                     name = "batch.#{name}"
                 end
@@ -156,7 +157,7 @@ class Batch
         end
 
 
-        if defined?(Batch::Events)
+        if defined?(Batch::Events) && defined?(Batch::Configurable)
             Batch::Events.subscribe(Configurable, 'post-configure') do |src, cfg|
                 LogManager.configure(cfg)
             end

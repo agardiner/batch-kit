@@ -143,8 +143,7 @@ class Batch
         #
         # @param process_obj [Object] Object that is executing the batch
         #   process.
-        # @param result [Object] If +success+ is true, the return value of the
-        #   process. If +success+ is false, the exception that caused it to fail.
+        # @param result [Object] The return value of the process.
         def success(process_obj, result)
             @status = :completed
             @exit_code = 0 unless @exit_code
@@ -156,11 +155,8 @@ class Batch
         #
         # @param process_obj [Object] Object that is executing the batch
         #   process.
-        # @param success [Boolean] True if the process completed without
-        #   throwing an exception.
-        # @param result_or_exception [Object|Exception] If +success+ is true,
-        #   the return value of the process. If +success+ is false, the
-        #   exception that caused it to fail.
+        # @param exception [Exception] The exception that caused this runnable
+        #   to fail.
         def failure(process_obj, exception)
             @status = :failed
             @exit_code = 1 unless @exit_code
@@ -183,8 +179,8 @@ class Batch
         #
         # @param process_obj [Object] Object that is executing the batch
         #   process.
-        # @param ok [Boolean] True if the process completed without throwing
-        #   an exception.
+        # @param success [Boolean] True if the process completed without
+        #   throwing an exception.
         def post_execute(process_obj, success)
             Batch::Events.publish(self, 'post-execute', process_obj, success)
             @object = nil
