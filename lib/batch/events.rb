@@ -21,7 +21,7 @@ class Batch
                     (@source == obj) ||     # Source is obj
                     (@source === obj) ||    # Source is same class as obj
                     (@source.instance_of?(Module) && obj.instance_of?(Class) && obj.include?(@source)) ||   # Source is a module included by obj
-                    (obj.class.include(ActsAsJob) && @source === obj.job)   # Source is a job, and obj is an instance of that job
+                    (obj.class.include?(ActsAsJob) && @source === obj.job)   # Source is a job, and obj is an instance of that job
             end
 
         end
