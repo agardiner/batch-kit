@@ -16,8 +16,9 @@ class Batch
             # Locate the MD5 record for the object named +obj_name+ whose type
             # is +obj_type+.
             def self.for(obj_name, obj_type, digest)
-                self.where('UPPER(OBJECT_NAME) = ? AND UPPER(OBJECT_TYPE) = ? AND MD5_DIGEST = ?',
-                           obj_name.upcase, obj_type.upcase, digest).first
+                self.where(Sequel.function(:upper, :object_name) => obj_name.upcase,
+                           Sequel.function(:upper, :object_type) => obj_type.upcase,
+                           :md5_digest => digest).first
             end
 
 
