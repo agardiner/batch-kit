@@ -50,7 +50,23 @@ class Batch
         #   +clear_text+ value.
         def encrypt(key_text, clear_text, salt = SALT)
             key = generate_key(key_text, salt)
-            cipher = OpenSSL::Cipher.new(CIPHER_ALGORITHM)
+        end
+        module_function :encrypt
+
+
+        # Encipher the supplied +clear_text+, using +key+ as the encryption key.
+        #
+        # Note: this method is possibly less secure than #encrypt, since it uses
+        # the actual key in the enciphering, rather than an SHA1 hash of the key.
+        #
+        # @param key [String] The key to use for encryption.
+        # @param clear_text [String] The cleartext string to be encrypted.
+        # @param cipher_algorithm [String] The name of the cipher algorithm to
+        #   use when encrypting the clear_text.
+        # @return [String] A base-64 encoded string representing the encrypted
+        #   +clear_text+ value.
+        def encipher(key, clear_text, cipher_algorithm = CIPHER_ALGORITHM)
+            cipher = OpenSSL::Cipher.new(cipher_algorithm)
             cipher.encrypt
             cipher.key = key
 
@@ -60,7 +76,7 @@ class Batch
             # Combine IV and cipher bytes, and base-64 encode
             base64_encode([iv + cipher_bytes])
         end
-        module_function :encrypt
+        module_function :encipher
 
 
         # Decrypt the supplied +cipher_text+, using +key_text+ as the pass-phrase.
@@ -75,7 +91,21 @@ class Batch
         # @return [String] The clear text that was encrypted.
         def decrypt(key_text, cipher_text, salt = SALT)
             key = generate_key(key_text, salt)
-            cipher = OpenSSL::Cipher.new(CIPHER_ALGORITHM)
+            decipher(key, cipher_text)
+        end
+        module_function :decrypt
+
+
+        # Decipher the supplited +cipher_text+, using +key+ as the decipher key.
+        #
+        # @param key [String] The key used for encryption.
+        # @param cipher_text [String] A base-64 encoded cipher text string that
+        #   is to be decrypted.
+        # @param cipher_algorithm [String] The name of the cipher algorithm used
+        #   to encrypt the clear_text.
+        # @return [String] The clear text that was encrypted.
+        def decipher(key, cipher_text, cipher_algorithm = CIPHER_ALGORITHM)
+            cipher = OpenSSL::Cipher.new(cipher_algorithm)
             cipher.decrypt
             cipher.key = key
 
@@ -86,7 +116,7 @@ class Batch
             cipher_bytes = iv_cipher[iv_len..-1]
             cipher.update(cipher_bytes) + cipher.final
         end
-        module_function :decrypt
+        module_function :decipher
 
 
         # Convert a byte array to a base-64 encoded string representation.
