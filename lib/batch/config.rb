@@ -382,6 +382,12 @@ class Batch
         end
 
 
+        # Override Hash core extension method #to_cfg and just return self.
+        def to_cfg
+            self
+        end
+
+
         # Override method_missing to respond to method calls with the value of the
         # property, if this Config object contains a property of the same name.
         def method_missing(name, *args)
