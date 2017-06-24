@@ -52,7 +52,7 @@ class Batch
 
             # Abort jobs in Executing state that have not logged for 6+ hours
             @schema.connection.transaction do
-                cutoff = Time.now - 6 * 60 *60
+                cutoff = Time.now - 6 * 60 * 60
                 exec_jobs = JobRun.where(job_status: 'EXECUTING').map(:job_run)
                 curr_jobs = JobRunLog.select_group(:job_run).
                     where(job_run: exec_jobs).having{max(log_time) > cutoff}.map(:job_run)
