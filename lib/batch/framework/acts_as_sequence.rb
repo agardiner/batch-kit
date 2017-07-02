@@ -101,6 +101,7 @@ class Batch
 
         def parallel
             puts "In parallel"
+            yield
         end
 
 

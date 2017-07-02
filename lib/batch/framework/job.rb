@@ -35,10 +35,10 @@ class Batch
 
         # A method that instantiates an instance of this job, parses
         # arguments from the command-line, and then executes the job.
-        def self.run
+        def self.run(args = ARGV)
             if @@enabled
                 job = self.new
-                job.parse_arguments
+                job.parse_arguments(args)
                 unless self.job.method_name
                     raise "No job entry method has been defined; use job :<method_name> or job do ... end in your class"
                 end
