@@ -35,6 +35,7 @@ File.class_eval do
             def open(*args, &blk)
                 if args.length >= 2 && (mode_string = args[1]).is_a?(String) &&
                     mode_string =~ /^(w|a):(.*)bom/i
+                    write_mode = $1.downcase == 'w'
                     args[1] = mode_string.sub(/bom\||[\-|]bom/, '')
                     f = open_without_bom(*args)
                     bom_hex = case mode_string
@@ -49,7 +50,7 @@ File.class_eval do
                     when /utf-32le/i
                         "\xFE\xFF\x00\x00"
                     end
-                    f << bom_hex.force_encoding(f.external_encoding)
+                    f << bom_hex.force_encoding(f.external_encoding) if write_mode
                     if block_given?
                         yield f
                         f.close
