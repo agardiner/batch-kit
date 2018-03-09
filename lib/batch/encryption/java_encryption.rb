@@ -37,6 +37,18 @@ class Batch
         SALT = [70, 211, 28, 57, 192, 6, 78, 163].pack("CCCCCCCC").to_java_bytes
 
 
+        # Generate a random master key that can be used to encrypt/decrypt other
+        # sensitive data such as passwords. The master key must be stored some
+        # place separate from the values it is used to encrypt.
+        #
+        # @return [String] A random string of text that can be used as a master
+        #   key for encrypting/decrypting other values.
+        def generate_master_key()
+            java.util.UUID.randomUUID().toString()
+        end
+        module_function :generate_master_key
+
+
         # Encrypt the supplied +clear_text+, using +key_text+ as the pass-phrase.
         #
         # @param key_text [String] The clear-text pass-phrase to use as the key
