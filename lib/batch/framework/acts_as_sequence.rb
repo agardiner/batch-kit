@@ -9,29 +9,30 @@ class Batch
     # - {ClassMethods#sequence_definition sequence_definition} Returns the
     #   Sequence::Definition object for the including class
     # - {ClassMethods#on_success on_success} defines a callback to be called if
-    #   the job completes successfully.
+    #   the sequence completes successfully.
     # - {ClassMethods#on_failure on_failure} defines a callback to be called if
-    #   the job encounters an unhandled exception.
+    #   the sequence encounters an unhandled exception.
     #
     # Instances of the including class also get the following instance methods:
-    # - {#job} Returns the Job::Definition for the class
-    # - {#job_run} Returns the Job::Run associated with this object instance.
+    # - {#sequence} Returns the Sequence::Definition for the class
+    # - {#sequence_run} Returns the Sequence::Run associated with this object instance.
     module ActsAsSequence
 
         # Define methods to be added to the class that includes this module.
         module ClassMethods
 
-            # @return The Job::Definition object used to hold attributes of this
-            #   job.
+            # @return The Sequence::Definition object used to hold attributes of this
+            #   sequence.
             def sequence_definition
                 @__sequence__
             end
+            alias_method :definition, :sequence_definition
 
 
-            # Captures a description for the following task or job definition.
+            # Captures a description for the following sequence definition.
             #
             # @param desc [String] The description to associate with the next
-            #   task or job that is defined.
+            #   sequence, job, or task that is defined.
             def desc(desc)
                 @__desc__ = desc
             end
@@ -92,7 +93,7 @@ class Batch
         # and stores it away in a @__sequence__ class instance variable.
         def self.included(base)
             base.extend(ClassMethods)
-            caller.last =~ /^((?:[a-zA-Z]:)?[^:]+)/
+            caller.find{ |f| !(f =~ /batch.framework/) } =~ /^((?:[a-zA-Z]:)?[^:]+)/
             sequence_file = File.realpath($1)
             sequence_defn = Sequence::Definition.new(base, sequence_file)
             base.instance_variable_set :@__sequence__, sequence_defn
@@ -100,7 +101,7 @@ class Batch
 
 
         def parallel
-            puts "In parallel"
+            # TODO: Implement running contents of block in parallel
             yield
         end
 
@@ -111,7 +112,7 @@ class Batch
         end
 
 
-        # @return [Job::Run] The SequenceRun for this Sequence instance.
+        # @return [Sequence::Run] The SequenceRun for this Sequence instance.
         def sequence_run
             @__sequence_run__
         end
