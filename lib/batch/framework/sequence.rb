@@ -43,7 +43,7 @@ class Batch
                     if self.args_def.short_keys.include?(arg.short_key)
                         arg.instance_variable_set :@short_key, nil
                     end
-                    self.args_def << arg 
+                    self.args_def << arg
                 end
             end
         end

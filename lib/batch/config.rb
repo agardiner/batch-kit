@@ -108,9 +108,10 @@ class Batch
             chain = properties.is_a?(Hash) ? [properties] : properties.reverse
             str.gsub(/(?:[$%])\{([a-zA-Z0-9_]+)\}/) do
                 case
-                when src = chain.find{ |props| props.has_key?($1) } then src[$1]
-                when src = chain.find{ |props| props.has_key?($1.intern) } then src[$1.intern]
-                when src = chain.find{ |props| props.has_key?($1.downcase.intern) } then src[$1.downcase.intern]
+                when src = chain.find{ |props| props.has_key?($1) ||
+                                       props.has_key?($1.intern) ||
+                                       props.has_key($1.downcase.intern) }
+                    src[$1] || src[$1.intern] || src[$1.downcase.intern]
                 when ENV[$1] then ENV[$1]
                 when raise_on_unknown_var
                     raise KeyError, "No value supplied for placeholder variable '#{$&}'"
