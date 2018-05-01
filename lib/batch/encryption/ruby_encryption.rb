@@ -140,7 +140,7 @@ class Batch
         # @return [String] A base-64 encoded String.
         def base64_encode(bytes)
             bytes = [bytes] if bytes.is_a?(String)
-            bytes.pack('m').chomp
+            bytes.pack('m0').chomp
         end
         module_function :base64_encode
 
@@ -150,7 +150,7 @@ class Batch
         # @param str [String] A base-64 encoded String.
         # @return [Array<byte>] A String containing the decoded bytes.
         def base64_decode(str)
-            str.unpack('m').first
+            str.unpack('m0').first
         end
         module_function :base64_decode
 
