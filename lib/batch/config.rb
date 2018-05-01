@@ -323,7 +323,7 @@ class Batch
                 begin
                     val = Encryption.decrypt(@decryption_key, $1)
                 rescue Exception => ex
-                    raise ex.class, "An error occurred while decrypting the value for key '#{key}': #{ex.message}"
+                    raise "An error occurred while decrypting the value for key '#{key}': #{ex.message}"
                 end
             end
             val
