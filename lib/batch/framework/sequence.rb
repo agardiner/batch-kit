@@ -24,13 +24,6 @@ class Batch
         end
 
 
-        def self.load_job(job_name)
-            Job.enabled = false
-            require job_name
-            Job.enabled = true
-        end
-
-
         # Import arguments defined on a Job into this sequence
         def self.import_args(source, options={})
             unless source.is_a?(ArgParser::Definition)
