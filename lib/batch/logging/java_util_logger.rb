@@ -39,7 +39,10 @@ class Batch
             # Adds a FileHandler to capture output from this logger to a log file.
             def log_file=(log_path)
                 @java_logger.getHandlers().each do |h|
-                    @java_logger.removeHandler(h) if h.is_a?(Java::JavaUtilLogging::FileHandler)
+                    if h.is_a?(Java::JavaUtilLogging::FileHandler)
+                        @java_logger.removeHandler(h)
+                        h.close()
+                    end
                 end
                 @log_file = log_path
                 if log_path
@@ -48,7 +51,7 @@ class Batch
                     FileUtils.mkdir_p(File.dirname(log_path))
                     fh = Java::JavaUtilLogging::FileHandler.new(log_path, true)
                     if defined?(Console::JavaUtilLogger)
-                        fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT] %4$-6s  %5$s', -1)
+                        fmt = Console::JavaUtilLogger::RubyFormatter.new('[%1$tF %1$tT]  %4$-6s  %5$s', -1)
                         fmt.level_labels[Java::JavaUtilLogging::Level::FINE] = 'DETAIL'
                         fmt.level_labels[Java::JavaUtilLogging::Level::FINER] = 'TRACE'
                     else
