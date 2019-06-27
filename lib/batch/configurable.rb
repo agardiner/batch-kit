@@ -22,7 +22,7 @@ class Batch
             def configure(*cfg_files)
                 options = cfg_files.last.is_a?(Hash) ? cfg_files.pop.clone : {}
                 if defined?(Batch::Events)
-                    Batch::Events.publish(self, 'pre-configure', config, cfg_files)
+                    Batch::Events.publish(self, 'config.pre-load', config, cfg_files)
                 end
                 config.decryption_key = options.delete(:decryption_key) if options[:decryption_key]
                 config.merge!(options)
@@ -30,7 +30,7 @@ class Batch
                     config.load(cfg_file, options)
                 end
                 if defined?(Batch::Events)
-                    Batch::Events.publish(self, 'post-configure', config)
+                    Batch::Events.publish(self, 'config.post-load', config)
                 end
                 config
             end

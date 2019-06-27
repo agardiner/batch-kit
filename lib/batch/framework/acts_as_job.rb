@@ -13,6 +13,8 @@ class Batch
     #   the job completes successfully.
     # - {ClassMethods#on_failure on_failure} defines a callback to be called if
     #   the job encounters an unhandled exception.
+    # - {ClassMethods#on_completion} defines a callback to be called when the
+    #   job completes.
     #
     # Instances of the including class also get the following instance methods:
     # - {#job} Returns the Job::Definition for the class
@@ -134,15 +136,15 @@ class Batch
             # Defines a handler to be invoked if the job encounters an unhandled
             # exception.
             def on_failure(mthd = nil, &blk)
-                Batch::Events.subscribe(Job::Run, 'failure'){ |jr, obj, ex| obj.send(mthd, ex) } if mthd
-                Batch::Events.subscribe(Job::Run, 'failure'){ |jr, obj, ex| obj.instance_exec(ex, &blk) } if blk
+                Batch::Events.subscribe(self, 'job_run.failure'){ |jr, obj, ex| obj.send(mthd, ex) } if mthd
+                Batch::Events.subscribe(self, 'job_run.failure'){ |jr, obj, ex| obj.instance_exec(ex, &blk) } if blk
             end
 
 
             # Defines a handler to be invoked if the job ends successfully.
             def on_success(mthd = nil, &blk)
-                Batch::Events.subscribe(Job::Run, 'success'){ |jr, obj| obj.send(mthd) } if mthd
-                Batch::Events.subscribe(Job::Run, 'success'){ |jr, obj| obj.instance_exec(&blk) } if blk
+                Batch::Events.subscribe(self, 'job_run.success'){ |jr, obj| obj.send(mthd) } if mthd
+                Batch::Events.subscribe(self, 'job_run.success'){ |jr, obj| obj.instance_exec(&blk) } if blk
             end
 
 
@@ -156,8 +158,8 @@ class Batch
             #   represents the completing job run.
             # 
             def on_completion(mthd = nil, &blk)
-                Batch::Events.subscribe(Job::Run, 'post-execute'){ |jr, obj, ok| obj.send(mthd, jr) } if mthd
-                Batch::Events.subscribe(Job::Run, 'post-execute'){ |jr, obj, ok| obj.instance_exec(jr, &blk) } if blk
+                Batch::Events.subscribe(self, 'job_run.post-execute'){ |jr, obj, ok| obj.send(mthd, jr) } if mthd
+                Batch::Events.subscribe(self, 'job_run.post-execute'){ |jr, obj, ok| obj.instance_exec(jr, &blk) } if blk
             end
 
         end
@@ -174,6 +176,7 @@ class Batch
             job_file = File.realpath($1)
             job_defn = Job::Definition.new(base, job_file)
             base.instance_variable_set :@__job__, job_defn
+            Batch::Events.publish(base, 'acts_as_job.included', job_defn)
         end
 
 

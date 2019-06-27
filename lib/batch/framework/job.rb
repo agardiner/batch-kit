@@ -59,29 +59,32 @@ class Batch
             self.job_run.with_lock(lock_name, lock_timeout, wait_timeout, &blk)
         end
 
-    end
 
-
-    Batch::Events.subscribe(Runnable, 'execute') do |run, obj, *args|
-        Console.title = case run
-                        when Job::Run then run.label
-                        when Task::Run then "#{run.job_run.label} : #{run.label}"
-                        end
-    end
-
-    Batch::Events.subscribe(Task::Run, 'post-execute') do |run, obj, *args|
-        Console.title = run.job_run.label
-    end
-
-
-    # Add unhandled exception logging
-    Batch::Events.subscribe(Runnable, 'failure') do |run, obj, ex|
-        unless (oid = ex.object_id) == @last_id
-            @last_id = oid
-            # Strip out framework methods from backtrace
-            ex.backtrace.reject!{ |f| f =~ /batch.lib.batch.framework/ }
-            obj.log.error ex
+        Batch::Events.subscribe(self, 'job_run.execute') do |obj, run, *args|
+            Console.title = run.label
         end
+
+        Batch::Events.subscribe(self, 'task_run.execute') do |obj, run, *args|
+            Console.title = "#{run.job_run.label} : #{run.label}"
+        end
+
+        Batch::Events.subscribe(self, 'task_run.post-execute') do |obj, run, *args|
+            Console.title = run.job_run.label
+        end
+
+
+        # Add unhandled exception logging
+        Batch::Events.subscribe(self, ['sequence_run.failure',
+                                       'job_run.failure',
+                                       'task_run.failure']) do |obj, run, ex|
+            unless (oid = ex.object_id) == @last_id
+                @last_id = oid
+                # Strip out framework methods from backtrace
+                ex.backtrace.reject!{ |f| f =~ /lib.batch.framework/ }
+                obj.log.error "#{ex} at #{ex.backtrace.first}"
+            end
+        end
+
     end
 
 end

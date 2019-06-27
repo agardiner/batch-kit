@@ -68,7 +68,13 @@ class Batch
         # Create a new instance of this definition.
         def initialize
             @runs = []
-            Batch::Events.publish(self, 'initialized')
+        end
+
+
+        # Returns an event name for publication, based on the sub-class of Runnable
+        # that is triggering the event.
+        def event_name(event)
+            "#{self.class.name.split('::')[1].downcase}.#{event}"
         end
 
 
@@ -114,21 +120,20 @@ class Batch
                 define_method mthd_name do |*args, &block|
                     run = defn.create_run(self, *args)
                     if run.pre_execute(self, *args)
-                        ok = true
+                        ok = false
                         result = nil
                         begin
                             run.around_execute(self, *args) do
                                 result = mthd.bind(self).call(*args, &block)
                             end
+                            ok = true
                             run.success(self, result)
                             result
                         rescue Exception => ex
-                            ok = false
-                            run.failure(self, ex)
+                            run.failure(self, ex) unless ok
                             raise
                         rescue Interrupt
-                            ok = false
-                            run.abort(self)
+                            run.abort(self) unless ok
                             raise
                         ensure
                             run.post_execute(self, ok)
@@ -136,7 +141,7 @@ class Batch
                     end
                 end
             end
-            Batch::Events.publish(self, 'installed', tgt_class, mthd_name)
+            Batch::Events.publish(tgt_class, event_name('defined'), mthd_name)
         end
 
 

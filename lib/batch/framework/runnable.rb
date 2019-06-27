@@ -68,14 +68,21 @@ class Batch
             @status = :initialized
             @lock_name = eval_property_expr(definition.lock_name, obj, run_args)
             @lock_timeout = case definition.lock_timeout
-                when Fixnum then definition.lock_timeout
+                when Numeric then definition.lock_timeout
                 when String then eval_property_expr(definition.lock_timeout, obj, run_args, :to_i)
             end
             @lock_wait_timeout = case definition.lock_wait_timeout
-                when Fixnum then definition.lock_wait_timeout
+                when Numeric then definition.lock_wait_timeout
                 when String then eval_property_expr(definition.lock_wait_timeout, obj, run_args, :to_i)
             end
-            Batch::Events.publish(self, 'initialized')
+            Batch::Events.publish(self, event_name('initialized'))
+        end
+
+
+        # Returns an event name for publication, based on the sub-class of Runnable
+        # that is triggering the event.
+        def event_name(event)
+            "#{self.class.name.split('::')[1..-1].join('_').downcase}.#{event}"
         end
 
 
@@ -102,14 +109,14 @@ class Batch
         # @return [Boolean] True if the process should proceed, or false if it
         #   should be skipped.
         def pre_execute(process_obj, *args)
-            if Batch::Events.has_subscribers?(self, 'pre-execute')
-                run = Batch::Events.publish(self, 'pre-execute', process_obj, *args)
+            if Batch::Events.has_subscribers?(process_obj, event_name('pre-execute'))
+                run = Batch::Events.publish(process_obj, event_name('pre-execute'), self, *args)
             else
                 run = true
             end
             unless run
                 @status = :skipped unless run
-                Batch::Events.publish(self, 'skipped', process_obj, *args)
+                Batch::Events.publish(process_obj, event_name('skipped'), self, *args)
             end
             run
         end
@@ -126,7 +133,7 @@ class Batch
             @start_time = Time.now
             @status = :executing
             @exit_code = nil
-            Batch::Events.publish(self, 'execute', process_obj, *args)
+            Batch::Events.publish(process_obj, event_name('execute'), self, *args)
             begin
                 if @lock_name
                     self.with_lock(@lock_name, @lock_timeout, @lock_wait_timeout, &blk)
@@ -147,7 +154,7 @@ class Batch
         def success(process_obj, result)
             @status = :completed
             @exit_code = 0 unless @exit_code
-            Batch::Events.publish(self, 'success', process_obj, result)
+            Batch::Events.publish(process_obj, event_name('success'), self, result)
         end
 
 
@@ -161,7 +168,7 @@ class Batch
             @status = :failed
             @exit_code = 1 unless @exit_code
             @exception = exception
-            Batch::Events.publish(self, 'failure', process_obj, exception)
+            Batch::Events.publish(process_obj, event_name('failure'), self, exception)
         end
 
 
@@ -171,7 +178,7 @@ class Batch
         #   process.
         def abort(process_obj)
             @status = :aborted
-            Batch::Events.publish(self, 'abort', process_obj)
+            Batch::Events.publish(process_obj, event_name('abort'), self)
         end
 
 
@@ -182,7 +189,7 @@ class Batch
         # @param success [Boolean] True if the process completed without
         #   throwing an exception.
         def post_execute(process_obj, success)
-            Batch::Events.publish(self, 'post-execute', process_obj, success)
+            Batch::Events.publish(process_obj, event_name('post-execute'), self, success)
             @object = nil
         end
 

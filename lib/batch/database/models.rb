@@ -179,20 +179,20 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'pre-execute') do |job_run, job_obj, *args|
+            Batch::Events.subscribe(nil, 'job_run.pre-execute') do |job_obj, job_run, *args|
                 Job.register(job_run.definition) if job_run.persist?
                 true
             end
-            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj|
+            Batch::Events.subscribe(nil, 'job_run.execute') do |job_obj, job_run, *args|
                 Job[job_run.job_id].job_start(job_run) if job_run.persist?
             end
-            Batch::Events.subscribe(Batch::Job::Run, 'success') do |job_run, job_obj|
+            Batch::Events.subscribe(nil, 'job_run.success') do |job_obj, job_run, result|
                 Job[job_run.job_id].job_success(job_run) if job_run.persist?
             end
-            Batch::Events.subscribe(Batch::Job::Run, 'failure') do |job_run, job_obj|
+            Batch::Events.subscribe(nil, 'job_run.failure') do |job_obj, job_run, ex|
                 Job[job_run.job_id].job_failure(job_run) if job_run.persist?
             end
-            Batch::Events.subscribe(Batch::Job::Run, 'abort') do |job_run, job_obj|
+            Batch::Events.subscribe(nil, 'job_run.abort') do |job_obj, job_run|
                 Job[job_run.job_id].job_abort(job_run) if job_run.persist?
             end
 
@@ -276,20 +276,20 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'pre-execute') do |job_run, job_obj, *args|
+            Batch::Events.subscribe(nil, 'job_run.pre-execute') do |job_obj, job_run, *args|
                 Task.register(job_run.definition) if job_run.persist?
             end
 
-            Batch::Events.subscribe(Batch::Task::Run, 'execute') do |task_run, job_obj|
+            Batch::Events.subscribe(nil, 'task_run.execute') do |job_obj, task_run, *args|
                 Task[task_run.task_id].task_start(task_run) if task_run.persist?
             end
-            Batch::Events.subscribe(Batch::Task::Run, 'success') do |task_run, job_obj|
+            Batch::Events.subscribe(nil, 'task_run.success') do |job_obj, task_run, result|
                 Task[task_run.task_id].task_success(task_run) if task_run.persist?
             end
-            Batch::Events.subscribe(Batch::Task::Run, 'failure') do |task_run, job_obj|
+            Batch::Events.subscribe(nil, 'task_run.failure') do |job_obj, task_run, ex|
                 Task[task_run.task_id].task_failure(task_run) if task_run.persist?
             end
-            Batch::Events.subscribe(Batch::Task::Run, 'abort') do |task_run, job_obj|
+            Batch::Events.subscribe(nil, 'task_run.abort') do |job_obj, task_run|
                 Task[task_run.task_id].task_abort(task_run) if task_run.persist?
             end
 
@@ -337,10 +337,10 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'execute', position: 0) do |job_run, job_obj, *args|
+            Batch::Events.subscribe(nil, 'job_run.execute', position: 0) do |job_obj, job_run, *args|
                 JobRun.new(job_run).job_start(job_run) if job_run.persist?
             end
-            Batch::Events.subscribe(Batch::Job::Run, 'post-execute') do |job_run, job_obj, ok|
+            Batch::Events.subscribe(nil, 'job_run.post-execute') do |job_obj, job_run, ok|
                 JobRun[job_run.job_run_id].job_end(job_run) if job_run.persist?
             end
 
@@ -370,7 +370,7 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+            Batch::Events.subscribe(nil, 'job_run.execute') do |job_obj, job_run, *args|
                 JobRunArg.from(job_run) if job_run.persist?
             end
 
@@ -392,7 +392,7 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'failure') do |job_run, job_obj, ex|
+            Batch::Events.subscribe(nil, 'job_run.failure') do |job_obj, job_run, ex|
                 JobRunFailure.new(job_run, ex).save if job_run.persist?
             end
 
@@ -438,10 +438,10 @@ class Batch
 
 
 
-            Batch::Events.subscribe(Batch::Task::Run, 'execute', position: 0) do |task_run, job_obj, *args|
+            Batch::Events.subscribe(nil, 'task_run.execute', position: 0) do |job_obj, task_run, *args|
                 TaskRun.new(task_run).task_start(task_run) if task_run.persist?
             end
-            Batch::Events.subscribe(Batch::Task::Run, 'post-execute') do |task_run, job_obj, ok|
+            Batch::Events.subscribe(nil, 'task_run.post-execute') do |job_obj, task_run, ok|
                 TaskRun[task_run.task_run_id].task_end(task_run) if task_run.persist?
             end
 
@@ -469,7 +469,7 @@ class Batch
             end
 
 
-            Batch::Events.subscribe(Batch::Job::Run, 'execute') do |job_run, job_obj, *args|
+            Batch::Events.subscribe(nil, 'job_run.execute') do |job_obj, job_run, *args|
                 if job_run.persist? && (logger = job_obj.respond_to?(:log) && job_obj.log)
                     JobRunLog.install_log_handler(job_run, logger)
                 end

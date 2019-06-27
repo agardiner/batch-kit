@@ -1,27 +1,45 @@
 class Batch
 
-    # Manages batch event notifications and subscriptions
+    # Manages batch event notifications and subscriptions, which provide a
+    # useful means of decoupling different components of the batch library.
+    #
+    # The problem we are looking to solve here is that we want our batch jobs,
+    # tasks etc to be able to notify interested parties when something happens
+    # (e.g. a task starts, a job fails, etc) without these event sources needing
+    # to know all the interested parties to notify. We therefore introduce an
+    # intermediary, which is the Events system.
+    #
+    # Interested parties register their interest in specific events or event
+    # classes by subscribing to the events of interest. Framework classes then
+    # notify the Event system when an event occurs, and the event system routes
+    # these notifications on to all registered subscribers.
+    #
+    # One of the problems we need to solve for is how subscribers can define the
+    # scope of their interest. Is it all events of a particular type, regardless
+    # of source? Or are we only interested in events from a specific source (e.g
+    # job or task)?
     class Events
 
         # Records subscription details
         class Subscription
 
-            attr_reader :source, :callback, :raise_on_error
+            attr_reader :source, :event, :callback, :raise_on_error
 
 
-            def initialize(source, options, callback)
+            def initialize(source, event, options, callback)
                 @source = source
+                @event = event
                 @raise_on_error = options.fetch(:raise_on_error, true)
                 @callback = callback
             end
 
 
             def ===(obj)
-                @source.nil? ||             # Nil source means match any source
+                @source.nil? ||             # Nil source means match any obj
                     (@source == obj) ||     # Source is obj
-                    (@source === obj) ||    # Source is same class as obj
-                    (@source.instance_of?(Module) && obj.instance_of?(Class) && obj.include?(@source)) ||   # Source is a module included by obj
-                    (obj.class.include?(ActsAsJob) && @source === obj.job)   # Source is a job, and obj is an instance of that job
+                    (@source === obj) ||    # obj is an instance of source class
+                    (@source.instance_of?(Module) && obj.instance_of?(Class) &&
+                     obj.include?(@source))   # Source is a module included by obj
             end
 
         end
@@ -55,7 +73,11 @@ class Batch
             def subscribe(source, event, options = {}, &callback)
                 @log.trace "Adding subscriber for #{source} event '#{event}'" if @log
                 position = options.fetch(:position, -1)
-                subscribers[event].insert(position, Subscription.new(source, options, callback))
+                if event.is_a?(Array)
+                    event.each{ |e| subscribers[e].insert(position, Subscription.new(source, e, options, callback)) }
+                else
+                    subscribers[event].insert(position, Subscription.new(source, event, options, callback))
+                end
             end
 
 
