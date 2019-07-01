@@ -37,12 +37,42 @@ class Batch
         # arguments from the command-line, and then executes the job.
         def self.run(args = ARGV)
             if @@enabled
-                job = self.new
-                job.parse_arguments(args)
-                unless self.job.method_name
-                    raise "No job entry method has been defined; use job :<method_name> or job do ... end in your class"
+                if args.length == 0
+                    shell
+                else
+                    run_once(args)
                 end
-                job.send(self.job.method_name)
+            end
+        end
+
+
+        # Instantiates and executes a job, using the supplied arguments +args+.
+        #
+        # @param args [Array<String>] an array containin§g the command-line to
+        #   be processed by the job.
+        def self.run_once(args, show_usage_on_error = true)
+            job = self.new
+            job.parse_arguments(args, show_usage_on_error)
+            unless self.job.method_name
+                raise "No job entry method has been defined; use job :<method_name> or job do ... end in your class"
+            end
+            job.send(self.job.method_name)
+        end
+
+
+        # Starts an interactive shell for this job. Each command line entered is
+        # passed to a new instance of the job for execution.
+        def self.shell(prompt = '> ')
+            require 'readline'
+            require 'csv'
+            puts "Starting interactive shell... enter 'exit' to quit"
+            while true do
+                args = Readline.readline(prompt, true)
+                break if args == 'exit' || args == 'quit'
+                begin
+                    run_once(CSV.parse_line(args, col_sep: ' '), false)
+                rescue Exception
+                end
             end
         end
 

@@ -17,7 +17,7 @@ class Batch
 
 
         # Parse command-line arguments
-        def parse_arguments(args = ARGV)
+        def parse_arguments(args = ARGV, show_usage_on_error = true)
             if self.is_a?(Batch::Job)
                 args_def.title ||= self.job.name.titleize
                 args_def.purpose ||= self.job.description
@@ -29,14 +29,16 @@ class Batch
             @arguments = arg_parser.parse(args)
             if @arguments == false
                 if arg_parser.show_help?
-                    args_def.show_help(nil, Console.width || 80).each do |line|
+                    arg_parser.definition.show_help(nil, Console.width || 80).each do |line|
                         Console.puts line, :cyan
                     end
                     exit
                 else
                     arg_parser.errors.each{ |error| Console.puts error, :red }
-                    args_def.show_usage(nil, Console.width || 80).each do |line|
-                        Console.puts line, :yellow
+                    if show_usage_on_error
+                        arg_parser.definition.show_usage(nil, Console.width || 80).each do |line|
+                            Console.puts line, :yellow
+                        end
                     end
                     exit(99)
                 end
