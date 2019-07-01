@@ -227,6 +227,13 @@ class BatchKit
         end
 
 
+        # Ensure that Config objects are saved as normal hashes when writing
+        # YAML.
+        def encode_with(coder)
+            coder.represent_map nil, self
+        end
+
+
         # Merge the contents of the specified +hsh+ into this Config object.
         #
         # @param hsh [Hash] The Hash object to merge into this Config object.

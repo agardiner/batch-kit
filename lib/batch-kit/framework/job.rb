@@ -37,7 +37,7 @@ class BatchKit
         # arguments from the command-line, and then executes the job.
         def self.run(args = ARGV)
             if @@enabled
-                if args.length == 0
+                if args.length == 0 && self.args_def.keys.length > 0
                     shell
                 else
                     run_once(args)

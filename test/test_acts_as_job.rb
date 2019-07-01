@@ -59,7 +59,7 @@ class TestActsAsJob < Test::Unit::TestCase
         task = JobA.task :task1
         assert_equal(:task1, task.method_name)
         assert_equal(JobA, task.task_class)
-        assert_equal('task1', task.name)
+        assert_equal('Task1', task.name)
         assert_equal(task, JobA.job.tasks[:task1])
     end
 

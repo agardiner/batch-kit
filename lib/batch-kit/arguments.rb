@@ -18,10 +18,10 @@ class BatchKit
 
         # Parse command-line arguments
         def parse_arguments(args = ARGV, show_usage_on_error = true)
-            if self.is_a?(BatchKit::Job)
+            if defined?(BatchKit::Job) && self.is_a?(BatchKit::Job)
                 args_def.title ||= self.job.name.titleize
                 args_def.purpose ||= self.job.description
-            elsif self.is_a?(BatchKit::Sequence)
+            elsif defined?(BatchKit::Sequence) && self.is_a?(BatchKit::Sequence)
                 args_def.title ||= self.sequence.name.titleize
                 args_def.purpose ||= self.sequence.description
             end

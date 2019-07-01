@@ -1,9 +1,11 @@
 require 'test/unit'
 require 'batch-kit/config'
-require 'batch-kit/framework/configurable'
+require 'batch-kit/configurable'
 
 
 class TestConfig < Test::Unit::TestCase
+
+    DIR = File.dirname(__FILE__)
 
     class ConfigA
         include BatchKit::Configurable
