@@ -1,9 +1,9 @@
 require 'test/unit'
-require 'batch/arguments'
+require 'batch-kit/arguments'
 
 class TestArguments < Test::Unit::TestCase
 
-    include Batch::Arguments
+    include BatchKit::Arguments
 
     positional_arg :pos_arg, 'A positional arg'
     keyword_arg :kw_arg, 'A keyword arg'

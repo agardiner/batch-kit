@@ -1,19 +1,19 @@
 require 'test/unit'
-require 'batch/job'
-require 'batch/sequence'
+require 'batch-kit/job'
+require 'batch-kit/sequence'
 
 
 class TestSequence < Test::Unit::TestCase
 
-    class Job1 < Batch::Job
+    class Job1 < BatchKit::Job
         job {}
     end
 
-    class Job2 < Batch::Job
+    class Job2 < BatchKit::Job
         job {}
     end
 
-    class Seq1 < Batch::Sequence
+    class Seq1 < BatchKit::Sequence
         sequence do
             run Job1
             run Job2

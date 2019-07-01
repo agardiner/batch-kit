@@ -1,5 +1,5 @@
 require 'test/unit'
-require 'batch/events'
+require 'batch-kit/events'
 
 
 class TestEvents < Test::Unit::TestCase
@@ -10,14 +10,14 @@ class TestEvents < Test::Unit::TestCase
 
     
     def subscribe(src, event)
-        Batch::Events.subscribe(src, event) do |source|
+        BatchKit::Events.subscribe(src, event) do |source|
             @events[event] += 1
         end
     end
 
 
     def publish(src, event)
-        Batch::Events.publish(src, event)
+        BatchKit::Events.publish(src, event)
     end
 
 

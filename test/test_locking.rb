@@ -1,22 +1,22 @@
 require 'test/unit'
-require 'batch/lockable'
+require 'batch-kit/lockable'
 
 
 
 class TestLocking < Test::Unit::TestCase
 
-    include Batch::Lockable
+    include BatchKit::Lockable
 
 
     def setup
         @locks = {}
-        Batch::Events.subscribe(self, 'lock?') do |requestor, lock_name, lock_timeout|
+        BatchKit::Events.subscribe(self, 'lock?') do |requestor, lock_name, lock_timeout|
             #puts "Lock request received for #{lock_name}"
             if @locks[lock_name] == nil || @locks[lock_name][:expires] < Time.now
                 @locks[lock_name] = {holder: requestor, expires: Time.now + lock_timeout}
             end
         end
-        Batch::Events.subscribe(self, 'unlock?') do |requestor, lock_name|
+        BatchKit::Events.subscribe(self, 'unlock?') do |requestor, lock_name|
             #puts "Unlock request received for #{lock_name}"
             assert_equal(requestor, @locks[lock_name][:holder])
             @locks.delete(lock_name)
@@ -25,8 +25,8 @@ class TestLocking < Test::Unit::TestCase
 
 
     def teardown
-        Batch::Events.unsubscribe(self, 'lock?')
-        Batch::Events.unsubscribe(self, 'unlock?')
+        BatchKit::Events.unsubscribe(self, 'lock?')
+        BatchKit::Events.unsubscribe(self, 'unlock?')
     end
 
 

@@ -1,5 +1,5 @@
 require 'test/unit'
-require 'batch/config'
+require 'batch-kit/config'
 require 'fileutils'
 
 
@@ -9,20 +9,20 @@ class TestConfig < Test::Unit::TestCase
     KEY = '$CDq7;s[p'
 
     def test_empty
-        cfg = Batch::Config.new
+        cfg = BatchKit::Config.new
         assert_equal(0, cfg.size)
     end
 
 
     def test_from_hash
-        cfg = Batch::Config.new('key1' => 1, :key2 => 'Two')
+        cfg = BatchKit::Config.new('key1' => 1, :key2 => 'Two')
         assert_equal(1, cfg['key1'])
         assert_equal('Two', cfg[:key2])
     end
 
 
     def test_key_conversion
-        cfg = Batch::Config.new('key1' => 1, :key2 => 'Two')
+        cfg = BatchKit::Config.new('key1' => 1, :key2 => 'Two')
         assert_equal(1, cfg[:key1])
         assert_equal(1, cfg[:KEY1])
         assert_equal(1, cfg['KEY1'])
@@ -33,14 +33,14 @@ class TestConfig < Test::Unit::TestCase
 
 
     def test_property_access
-        cfg = Batch::Config.new('key1' => 1, :key2 => 'Two')
+        cfg = BatchKit::Config.new('key1' => 1, :key2 => 'Two')
         assert_equal(1, cfg.key1)
         assert_equal('Two', cfg.key2)
     end
 
 
     def test_property_exists
-        cfg = Batch::Config.new('key1' => 1, :key2 => 'Two')
+        cfg = BatchKit::Config.new('key1' => 1, :key2 => 'Two')
         assert_equal(true, cfg.key1?)
         assert_equal(false, cfg.key3?)
     end
@@ -48,7 +48,7 @@ class TestConfig < Test::Unit::TestCase
 
     def test_properties
         str = IO.read("#{DIR}/test_config.properties")
-        hsh = Batch::Config.properties_to_hash(str)
+        hsh = BatchKit::Config.properties_to_hash(str)
         assert_equal('Top', hsh['TOP_LEVEL_PROPERTY'])
         assert_equal(Hash, hsh['SECTION_TEST'].class)
         assert_equal('One', hsh['SECTION_TEST']['PROP1'])
@@ -58,11 +58,11 @@ class TestConfig < Test::Unit::TestCase
 
 
     def test_config_from_properties
-        cfg = Batch::Config.load("#{DIR}/test_config.properties")
+        cfg = BatchKit::Config.load("#{DIR}/test_config.properties")
         assert_equal('Top', cfg['TOP_LEVEL_PROPERTY'])
         assert_equal('Top', cfg[:top_level_property])
         assert_equal('Top', cfg.top_level_property)
-        assert_equal(Batch::Config, cfg.section_test.class)
+        assert_equal(BatchKit::Config, cfg.section_test.class)
         assert_equal('One', cfg.section_test.prop1)
 
         assert_equal('One_Two', cfg.section_test[:prop2])
@@ -70,7 +70,7 @@ class TestConfig < Test::Unit::TestCase
 
 
     def test_decryption
-        cfg = Batch::Config.load("#{DIR}/test_config.properties")
+        cfg = BatchKit::Config.load("#{DIR}/test_config.properties")
         assert_equal('Top', cfg['TOP_LEVEL_PROPERTY'])
         assert_equal('admin', cfg.secret.user_id)
         assert_equal('!AES:6BLBRr54rJ3q2wxOujo0yUtocZNgub7xH1belKLRANQ=!', cfg.secret.password)
@@ -81,7 +81,7 @@ class TestConfig < Test::Unit::TestCase
 
     def test_encryption
         master_key = 'AxY^tIPd$'
-        cfg = Batch::Config.new(user_id: 'test', password: 'A secret',
+        cfg = BatchKit::Config.new(user_id: 'test', password: 'A secret',
                                 ess_user: 'admin', ess_pwd: 'Another secret')
         cfg.encryption_key = master_key
         cfg.encrypt('password')
@@ -104,11 +104,11 @@ class TestConfig < Test::Unit::TestCase
 
 
     def test_save_yaml
-        cfg_props = Batch::Config.load("#{DIR}/test_config.properties")
+        cfg_props = BatchKit::Config.load("#{DIR}/test_config.properties")
         out_file = "#{DIR}/config.yaml"
         cfg_props.save_yaml(out_file)
         assert(File.exists?(out_file))
-        cfg = Batch::Config.load(out_file)
+        cfg = BatchKit::Config.load(out_file)
         cfg_props.each do |k, v|
             assert_equal(cfg_props[k], cfg[k])
         end

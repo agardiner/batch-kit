@@ -1,7 +1,7 @@
-require 'batch/job'
+require 'batch-kit/job'
 
 
-class TestException < Batch::Job
+class TestException < BatchKit::Job
 
     task :throw_exc do
         raise "This is an exception"

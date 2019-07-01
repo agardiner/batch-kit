@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require 'batch/helpers/process'
+require 'batch-kit/helpers/process'
 
 class TestProcess < Minitest::Test
 
@@ -9,7 +9,7 @@ class TestProcess < Minitest::Test
 
 
     def test_launch
-        Batch::Helpers::Process.launch('cmd.exe /C dir', log_level: :info)
+        BatchKit::Helpers::Process.launch('cmd.exe /C dir', log_level: :info)
     end
 
 end

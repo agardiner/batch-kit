@@ -1,12 +1,12 @@
 require 'test/unit'
-require 'batch/job'
+require 'batch-kit/job'
 
 
 class TestActsAsJob < Test::Unit::TestCase
 
     class JobA
 
-        include Batch::ActsAsJob
+        include BatchKit::ActsAsJob
 
         def task1; end
         def task2; end
@@ -20,7 +20,7 @@ class TestActsAsJob < Test::Unit::TestCase
 
     def test_inclusion_creates_job_definition
         job_def = JobA.job
-        assert_equal(Batch::Job::Definition, job_def.class)
+        assert_equal(BatchKit::Job::Definition, job_def.class)
         assert_equal(JobA, job_def.job_class)
         assert_equal(File.realpath(__FILE__), job_def.file)
         assert_equal(Socket.gethostname, job_def.computer)
@@ -65,7 +65,7 @@ class TestActsAsJob < Test::Unit::TestCase
 
 
     class JobB
-        include Batch::ActsAsJob
+        include BatchKit::ActsAsJob
     end
 
 
@@ -80,7 +80,7 @@ class TestActsAsJob < Test::Unit::TestCase
 
 
     class JobC
-        include Batch::ActsAsJob
+        include BatchKit::ActsAsJob
 
         def foo
             bar
@@ -113,7 +113,7 @@ class TestActsAsJob < Test::Unit::TestCase
         job_c = JobC.new
         job_c.foo
         job_run = job_c.job.runs.last
-        assert_equal(Batch::Job::Run, job_run.class)
+        assert_equal(BatchKit::Job::Run, job_run.class)
         assert_not_nil(job_run.start_time)
         assert_not_nil(job_run.end_time)
         job_runs = job_c.job.runs
@@ -128,7 +128,7 @@ class TestActsAsJob < Test::Unit::TestCase
     end
 
     class JobD
-        include Batch::ActsAsJob
+        include BatchKit::ActsAsJob
 
         def task1(a, b = nil)
         end

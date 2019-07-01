@@ -1,18 +1,18 @@
 require 'test/unit'
-require 'batch/config'
-require 'batch/framework/configurable'
+require 'batch-kit/config'
+require 'batch-kit/framework/configurable'
 
 
 class TestConfig < Test::Unit::TestCase
 
     class ConfigA
-        include Batch::Configurable
+        include BatchKit::Configurable
     end
 
 
     def test_configurable
         assert(ConfigA.respond_to?(:configure))
-        assert_equal(Batch::Config, ConfigA.config.class)
+        assert_equal(BatchKit::Config, ConfigA.config.class)
         assert_equal(0, ConfigA.config.size)
         ConfigA.config.foo = 'bar'
         assert_equal('bar', ConfigA.config.foo)

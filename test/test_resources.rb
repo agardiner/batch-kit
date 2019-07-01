@@ -1,7 +1,7 @@
 require 'minitest/autorun'
-require 'batch/resources'
-require 'batch/configurable'
-require 'batch/job'
+require 'batch-kit/resources'
+require 'batch-kit/configurable'
+require 'batch-kit/job'
 
 require 'sequel'
 if RUBY_ENGINE == 'jruby'
@@ -12,15 +12,15 @@ else
 end
 
 # Register various resource types
-Batch::ResourceManager.register(File, :get_file)
+BatchKit::ResourceManager.register(File, :get_file)
 
-Batch::ResourceManager.register(Sequel::Database, :get_db_connection, disposal_method: :disconnect) do |*args|
+BatchKit::ResourceManager.register(Sequel::Database, :get_db_connection, disposal_method: :disconnect) do |*args|
     Sequel.default_timezone = :utc
     log.detail "Connecting to database"
     conn = Sequel.connect(*args)
 end
 
-Batch::Events.subscribe(nil, 'resource.disposed') do |rsrc_cls, rsrc|
+BatchKit::Events.subscribe(nil, 'resource.disposed') do |rsrc_cls, rsrc|
     puts "Disposed of #{rsrc_cls} resource"
 end
 
@@ -28,14 +28,14 @@ end
 if RUBY_ENGINE == 'jruby'
     require 'ess4r'
     require 'ess4r/cube'
-    Batch::ResourceManager.register(Essbase::Server, :get_essbase_server,
+    BatchKit::ResourceManager.register(Essbase::Server, :get_essbase_server,
                                     disposal_method: :disconnect, use_send: true) do |cfg = config|
         log.detail "Connecting to Essbase as #{cfg.essbase_user} on #{cfg.essbase_server}"
         Essbase.connect(cfg.essbase_user, cfg.essbase_pwd, cfg.essbase_server)
     end
 
 
-    Batch::ResourceManager.register(Essbase::Cube, :get_essbase_cube,
+    BatchKit::ResourceManager.register(Essbase::Cube, :get_essbase_cube,
                                     disposal_method: :clear_active) do |app, db, cfg = config|
         srv = self.get_essbase_server(cfg)
         log.detail "Opening Essbase cube #{app}:#{db}"
@@ -46,8 +46,8 @@ end
 
 class MyJob
 
-    include Batch::ActsAsJob
-    include Batch::ResourceHelper
+    include BatchKit::ActsAsJob
+    include BatchKit::ResourceHelper
 
 end
 
@@ -55,9 +55,9 @@ end
 
 class TestResources < Minitest::Test
 
-    include Batch::ResourceHelper
-    include Batch::Configurable
-    include Batch::Loggable
+    include BatchKit::ResourceHelper
+    include BatchKit::Configurable
+    include BatchKit::Loggable
 
     configure File.dirname(__FILE__) + '/connections.yaml'
 

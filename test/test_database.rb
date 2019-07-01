@@ -1,6 +1,6 @@
 require 'test/unit'
-require 'batch/job'
-require 'batch/database'
+require 'batch-kit/job'
+require 'batch-kit/database'
 require 'color_console'
 require 'sequel'
 if RUBY_ENGINE == 'jruby'
@@ -13,16 +13,16 @@ end
 
 class TestSchema < Test::Unit::TestCase
 
-    include Batch::Configurable
+    include BatchKit::Configurable
 
     configure File.dirname(__FILE__) + '/connections.yaml'
 
-    Batch::LogManager.configure(log_framework: RUBY_ENGINE == 'jruby' ?
+    BatchKit::LogManager.configure(log_framework: RUBY_ENGINE == 'jruby' ?
                                 :java_util_logging :
                                 :log4r)
 
 
-    class MyJob < Batch::Job
+    class MyJob < BatchKit::Job
 
         positional_arg :pos_arg, 'Pos arg', default: 'None'
         keyword_arg :foo, 'More foo'
@@ -46,7 +46,7 @@ class TestSchema < Test::Unit::TestCase
 
 
     def setup
-        @db = Batch::Database.new(log_level: :error)
+        @db = BatchKit::Database.new(log_level: :error)
         @db.connect(config.batch_db)
     end
 

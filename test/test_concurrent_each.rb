@@ -1,4 +1,4 @@
-require 'batch/core_ext/enumerable'
+require 'batch-kit/core_ext/enumerable'
 
 
 (0...50).concurrent_each(threads: 8) do |i|

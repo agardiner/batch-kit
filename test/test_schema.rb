@@ -1,18 +1,18 @@
 require 'test/unit'
-require 'batch/configurable'
-require 'batch/database/schema'
+require 'batch-kit/configurable'
+require 'batch-kit/database/schema'
 require 'color_console'
 
 
 class TestSchema < Test::Unit::TestCase
 
-    include Batch::Configurable
+    include BatchKit::Configurable
     
     configure File.dirname(__FILE__) + '/connections.yaml'
 
     
     def setup
-        @schema = Batch::Database::Schema.new
+        @schema = BatchKit::Database::Schema.new
         @schema.connect(config.batch_db)
     end
 
