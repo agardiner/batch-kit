@@ -13,4 +13,5 @@ GEMSPEC = Gem::Specification.new do |s|
     s.require_paths = ['lib']
     s.files = ['README.md', 'LICENSE'] + Dir['lib/**/*.rb']
     s.has_rdoc = 'yard'
+    s.license = 'BSD-2-Clause'
 end
