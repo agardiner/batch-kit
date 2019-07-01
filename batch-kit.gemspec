@@ -11,6 +11,8 @@ GEMSPEC = Gem::Specification.new do |s|
     s.email = "adam.b.gardiner@gmail.com"
     s.homepage = 'https://github.com/agardiner/batch-kit'
     s.require_paths = ['lib']
+    s.add_runtime_dependency 'arg-parser', '~> 0.3'
+    s.add_runtime_dependency 'color-console', '~> 0.3'
     s.files = ['README.md', 'LICENSE'] + Dir['lib/**/*.rb']
     s.has_rdoc = 'yard'
     s.license = 'BSD-2-Clause'
