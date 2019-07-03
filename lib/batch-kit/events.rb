@@ -1,9 +1,9 @@
 class BatchKit
 
-    # Manages batch event notifications and subscriptions, which provide a
-    # useful means of decoupling different components of the batch library.
+    # Manages BatchKit event notifications and subscriptions, which provide a
+    # useful means of decoupling different components of the BatchKit library.
     #
-    # The problem we are looking to solve here is that we want our batch jobs,
+    # The problem we are looking to solve here is that we want our BatchKit jobs,
     # tasks etc to be able to notify interested parties when something happens
     # (e.g. a task starts, a job fails, etc) without these event sources needing
     # to know all the interested parties to notify. We therefore introduce an
@@ -127,7 +127,7 @@ class BatchKit
 
             # Enable/disable event debugging
             def debug=(dbg)
-                @log = dbg ? LogManager.logger('batch.events') : nil
+                @log = dbg ? LogManager.logger('batch-kit.events') : nil
             end
 
 

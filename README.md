@@ -1,21 +1,21 @@
 # Batch Kit
 
-Batch Kit is a framework for creating batch jobs, i.e. small utility programs
+BatchKit is a framework for creating batch jobs, i.e. small utility programs
 that are often run in batch via a scheduler to perform some kind of repetitive
 task. Using batch-kit, you can develop batch jobs from Ruby programs that are
 simple to write, but which are:
 
-- __Robust__: Batch jobs handle any uncaught exceptions gracefully, ensuring the
-  exception is reported, resources are freed, and the job itself exits with a
-  non-zero error code.
-- __Configurable__: Batch Kit jobs make it easy to define the command-line
+- __Robust__: BatchKit jobs handle any uncaught exceptions gracefully, ensuring
+  the exception is reported, resources are freed, and the job itself exits with
+  a non-zero error code.
+- __Configurable__: BatchKit jobs make it easy to define the command-line
   arguments the job can take, and also make it simple to use configuration files
   in either property or YAML format.
 - __Secure__: Configuration files support encryption of sensitive items such as
   passwords.
-- __Measured__: Batch jobs can use a database to gather statistics of runs, such
-  as the number of runs of each job, the average, minimum, and maximum duration,
-  arguments passed to the job, log output, etc.
+- __Measured__: BatchKit jobs can use a database to gather statistics of runs,
+  such as the number of runs of each job, the average, minimum, and maximum
+  duration, arguments passed to the job, log output, etc.
 
 To provide these capabilities, the batch kit framework provides:
 
@@ -153,8 +153,8 @@ define the main entry method, or we can pass a symbol identifying an existing
 method in our class to be the job entry point.
 
 Finally, to allow our job to run when it is passed as the main program to the
-Ruby engine, we call the {Batch::Job.run run} method on our class at the end of
-our script:
+Ruby engine, we call the {BatchKit::Job.run run} method on our class at the end
+of our script:
 
 ```
 MyJob.run

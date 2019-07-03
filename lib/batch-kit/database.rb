@@ -19,9 +19,9 @@ class BatchKit
         end
 
 
-        # Log database messages under the batch.database namespace.
+        # Log database messages under the batch-kit.database namespace.
         def log
-            @log ||= BatchKit::LogManager.logger('batch.database')
+            @log ||= BatchKit::LogManager.logger('batch-kit.database')
         end
 
 

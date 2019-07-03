@@ -47,7 +47,7 @@ class BatchKit
                     case self.log_framework
                     when :log4r
                         require 'color_console/log4r_logger'
-                        Console.replace_console_logger(logger: 'batch')
+                        Console.replace_console_logger(logger: 'batch-kit')
                     when :java_util_logging
                         require 'color_console/java_util_logger'
                         Console.replace_console_logger(
@@ -116,10 +116,10 @@ class BatchKit
             end
 
 
-            # Returns a logger with a given name, which must be under the 'batch'
-            # namespace. If name is omitted, the logger is named 'batch'. If a
-            # name is specified that is not under 'batch', then it is prepended
-            # with 'batch'.
+            # Returns a logger with a given name, which must be under the 'batch-kit'
+            # namespace. If name is omitted, the logger is named 'batch-kit'. If a
+            # name is specified that is not under 'batch-kit', then it is prepended
+            # with 'batch-kit'.
             #
             # @return [Logger] a logger object that can be used for generating
             #   log messages. The type of logger returned will depend on the
@@ -135,11 +135,11 @@ class BatchKit
             def logger(name = nil)
                 case name
                 when NilClass, ''
-                    name = 'batch'
-                when /^batch/
+                    name = 'batch-kit'
+                when /^batch-kit/
                 when /\./
                 when String
-                    name = "batch.#{name}"
+                    name = "batch-kit.#{name}"
                 end
                 case log_framework
                 when :stdout

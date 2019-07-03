@@ -6,7 +6,9 @@ GEMSPEC = Gem::Specification.new do |s|
     s.summary = "BatchKit is a framework for creating batch jobs with support for logging, configuration, and process management."
     s.description = <<-EOQ
         BatchKit is a framework that provides a number of capabilities to make the creation of batch jobs simpler,
-        and the running of jobs robust and simple to monitor."
+        and the running of jobs robust and simple to monitor. Provides logging, configuration management,
+        resource management, error handling, archiving, and monitoring capabilities that can be added to
+        any Ruby utility.
     EOQ
     s.email = "adam.b.gardiner@gmail.com"
     s.homepage = 'https://github.com/agardiner/batch-kit'

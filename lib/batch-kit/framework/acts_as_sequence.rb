@@ -93,7 +93,7 @@ class BatchKit
         # and stores it away in a @__sequence__ class instance variable.
         def self.included(base)
             base.extend(ClassMethods)
-            caller.find{ |f| !(f =~ /batch.framework/) } =~ /^((?:[a-zA-Z]:)?[^:]+)/
+            caller.find{ |f| !(f =~ /batch-kit.framework/) } =~ /^((?:[a-zA-Z]:)?[^:]+)/
             sequence_file = File.realpath($1)
             sequence_defn = Sequence::Definition.new(base, sequence_file)
             base.instance_variable_set :@__sequence__, sequence_defn
