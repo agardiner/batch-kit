@@ -37,12 +37,20 @@ class BatchKit
         # arguments from the command-line, and then executes the job.
         def self.run(args = ARGV)
             if @@enabled
-                if args.length == 0 && self.args_def.keys.length > 0
-                    shell
+                if !@shell && (args.length == 0 && self.args_def.keys.length > 0) || args.include?('--shell')
+                    args.delete_if{ |arg| arg == '--shell' }
+                    shell(args)
                 else
                     run_once(args)
                 end
             end
+        end
+
+
+        # Class method for marking this job class as one that should not provide
+        # an interactive shell.
+        def self.no_shell
+            @shell = false
         end
 
 
@@ -62,16 +70,23 @@ class BatchKit
 
         # Starts an interactive shell for this job. Each command line entered is
         # passed to a new instance of the job for execution.
-        def self.shell(prompt = '> ')
+        def self.shell(std_args = nil, prompt = '> ')
             require 'readline'
             require 'csv'
             puts "Starting interactive shell... enter 'exit' to quit"
             while true do
-                args = Readline.readline(prompt, true)
-                break if args == 'exit' || args == 'quit'
-                begin
-                    run_once(CSV.parse_line(args, col_sep: ' '), false)
-                rescue Exception
+                args = Readline.readline(prompt, true).strip
+                case args
+                when /^(exit|quit)/i then break
+                when /^set\s*(.+)?/i then
+                    std_args = $1 && CSV.parse_line($1, col_sep: ' ')
+                else
+                    begin
+                        once_args = CSV.parse_line(args, col_sep: ' ')
+                        once_args = std_args + once_args if std_args 
+                        run_once(once_args, false)
+                    rescue Exception
+                    end
                 end
             end
         end
