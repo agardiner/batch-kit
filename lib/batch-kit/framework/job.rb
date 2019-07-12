@@ -78,13 +78,17 @@ class BatchKit
                 args = Readline.readline(prompt, true).strip
                 case args
                 when /^(exit|quit)/i then break
-                when /^set\s*(.+)?/i then
+                when /^set\s*(.*)?/i then
                     std_args = $1 && CSV.parse_line($1, col_sep: ' ')
                 else
+                    once_args = CSV.parse_line(args, col_sep: ' ')
+                    if once_args.nil?
+                        once_args = std_args
+                    elsif std_args
+                        once_args = std_args + once_args
+                    end
                     begin
-                        once_args = CSV.parse_line(args, col_sep: ' ')
-                        once_args = std_args + once_args if std_args 
-                        run_once(once_args, false)
+                        run_once(once_args, false) if once_args
                     rescue Exception
                     end
                 end
