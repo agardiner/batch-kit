@@ -45,6 +45,19 @@ class BatchKit
                 @method_name = nil
                 @tasks = {}
                 super()
+                # Copy any task definitions on superclasses (exclude self and Object to BasicObject)
+                # We do this because we want to track task runs on the sub-class, not the superclass
+                job_class.ancestors[1..-4].each do |anc|
+                    if anc.respond_to?(:job_definition)
+                        anc.job_definition.tasks.each do |method_name, task_def|
+                            unless @tasks.has_key?(method_name)
+                                new_td = task_def.clone
+                                new_td.job = self
+                                @tasks[name] = new_td
+                            end
+                        end
+                    end
+                end
             end
 
 
@@ -69,8 +82,7 @@ class BatchKit
             end
 
 
-            # Add a record of a run of the job, or details about a task that the job
-            # performs.
+            # Add details about a task that the job performs.
             def <<(task)
                 unless task.is_a?(Task::Definition)
                     raise ArgumentError, "Only a Task::Definition can be added to a Job::Definition"

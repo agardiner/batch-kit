@@ -171,11 +171,11 @@ class BatchKit
         # Creates a Job::Definition object to hold details of the job, and stores
         # it away in a @__job__ class instance variable.
         def self.included(base)
-            base.extend(ClassMethods)
             caller.find{ |f| !(f =~ /batch-kit.framework/) } =~ /^((?:[a-zA-Z]:)?[^:]+)/
             job_file = File.realpath($1)
             job_defn = Job::Definition.new(base, job_file)
             base.instance_variable_set :@__job__, job_defn
+            base.extend(ClassMethods)
             Events.publish(base, 'acts_as_job.included', job_defn)
         end
 

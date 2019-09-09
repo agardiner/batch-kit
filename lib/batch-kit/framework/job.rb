@@ -124,8 +124,8 @@ class BatchKit
 
         # Add unhandled exception logging
         Events.subscribe(self, ['sequence_run.failure',
-                                       'job_run.failure',
-                                       'task_run.failure']) do |obj, run, ex|
+                                'job_run.failure',
+                                'task_run.failure']) do |obj, run, ex|
             unless (oid = ex.object_id) == @last_id
                 @last_id = oid
                 # Strip out framework methods from backtrace

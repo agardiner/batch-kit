@@ -32,16 +32,11 @@ class BatchKit
                 @name = task_name || method_name.to_s.gsub(/([^A-Z ])([A-Z])/, '\1 \2').
                     gsub(/_/, ' ').gsub('::', ':').gsub(/\b([a-z])/) { $1.upcase }
                 @job = job_defn
+                @task_class = job_class
                 @method_name = nil
                 self.method_name = method_name
                 @job << self
                 super()
-            end
-
-
-            # Return the class that defines the task.
-            def task_class
-                @job.job_class
             end
 
 
@@ -71,7 +66,10 @@ class BatchKit
             # @param job_obj [Object] The job object that is running this task.
             # @param args [Array<Object>] The arguments passed to the task method.
             def create_run(job_obj, *args)
-                task_run = Task::Run.new(self, job_obj, job_obj.job_run, *args)
+                # Look up the task from the actual job_obj class, so that we get the right
+                # task instance (in the case of sub-classing) to create the task run for
+                task = job_obj.job.tasks[self.method_name]
+                task_run = Task::Run.new(task, job_obj, job_obj.job_run, *args)
                 @runs << task_run
                 task_run
             end
