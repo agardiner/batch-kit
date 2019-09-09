@@ -10,7 +10,7 @@ class BatchKit
         # Records an MD5 hash of String objects, which are used to detect when
         # items such as jobs have changed. This in turn is used to increment a
         # version number on objects.
-        class MD5 < Sequel::Model(:batch_md5)
+        class MD5 < Sequel::Model(:batchkit_md5)
 
 
             # Locate the MD5 record for the object named +obj_name+ whose type
@@ -71,7 +71,7 @@ class BatchKit
 
 
         # Records details of job definitions
-        class Job < Sequel::Model(:batch_job)
+        class Job < Sequel::Model(:batchkit_job)
 
             many_to_one :md5, class: MD5, key: :job_file_md5_id
 
@@ -201,7 +201,7 @@ class BatchKit
 
 
         # Records details of Task definitions
-        class Task < Sequel::Model(:batch_task)
+        class Task < Sequel::Model(:batchkit_task)
 
             many_to_one :job, class: Job, key: :job_id
 
@@ -298,7 +298,7 @@ class BatchKit
 
 
         # Records details of job runs
-        class JobRun < Sequel::Model(:batch_job_run)
+        class JobRun < Sequel::Model(:batchkit_job_run)
 
             many_to_one :job, class: Job, key: :job_id
 
@@ -349,7 +349,7 @@ class BatchKit
 
 
         # Captures the value of all defined command-line arguments to the job
-        class JobRunArg < Sequel::Model(:batch_job_run_arg)
+        class JobRunArg < Sequel::Model(:batchkit_job_run_arg)
 
             unrestrict_primary_key
 
@@ -379,7 +379,7 @@ class BatchKit
 
 
         # Captures details of a job run exception
-        class JobRunFailure < Sequel::Model(:batch_job_run_failure)
+        class JobRunFailure < Sequel::Model(:batchkit_job_run_failure)
 
             many_to_one :job, class: Job, key: :job_id
 
@@ -401,7 +401,7 @@ class BatchKit
 
 
         # Capture details of a task run
-        class TaskRun < Sequel::Model(:batch_task_run)
+        class TaskRun < Sequel::Model(:batchkit_task_run)
 
             many_to_one :task, class: Task, key: :task_id
 
@@ -450,7 +450,7 @@ class BatchKit
 
 
         # Model for a single log message
-        class JobRunLog < Sequel::Model(:batch_job_run_log)
+        class JobRunLog < Sequel::Model(:batchkit_job_run_log)
 
             unrestrict_primary_key
 
@@ -479,7 +479,7 @@ class BatchKit
 
 
         # Model for a lock
-        class Lock < Sequel::Model(:batch_lock)
+        class Lock < Sequel::Model(:batchkit_lock)
 
             unrestrict_primary_key
 
@@ -532,16 +532,6 @@ class BatchKit
             end
 
         end
-
-
-
-        class Request < Sequel::Model(:batch_request)
-        end
-
-
-        class Requestor < Sequel::Model(:batch_requestor)
-        end
-
 
     end
 

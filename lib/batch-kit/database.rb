@@ -99,24 +99,11 @@ class BatchKit
                 end
             end
 
-            # Purge old request runs
-            @schema.connection.transaction do
-                purge_date = Date.today - @options.fetch(:request_retention_days, 90)
-                purge_requests = Request.where{request_launched_at < purge_date}.map(:request_id)
-                if purge_requests.count > 0
-                    log.detail "Purging request records for #{purge_requests.count} requests"
-                    purge_requests.each_slice(1000).each do |purge_ids|
-                        Request.where(request_id: purge_ids).delete
-                        Requestor.where(request_id: purge_ids).delete
-                    end
-                end
-            end
-
             # Purge jobs with no runs
             @schema.connection.transaction do
-                purge_jobs = Job.left_join(:batch_job_run, :job_id => :job_id).
-                    where(Sequel.qualify(:batch_job_run, :job_id) => nil).
-                    select(Sequel.qualify(:batch_job, :job_id)).map(:job_id)
+                purge_jobs = Job.left_join(JobRun, :job_id => :job_id).
+                    where(Sequel.qualify(JobRun.table_name, :job_id) => nil).
+                    select(Sequel.qualify(Job.table_name, :job_id)).map(:job_id)
                 if purge_jobs.count > 0
                     log.detail "Purging #{purge_jobs.count} old jobs"
                     purge_jobs.each_slice(1000).each do |purge_ids|
