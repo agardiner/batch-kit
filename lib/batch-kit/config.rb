@@ -378,6 +378,7 @@ class BatchKit
         def clone
             copy = super
             copy.instance_variable_set(:@lookup_keys, @lookup_keys.clone)
+            copy.each{ |k, v| copy[k] = v.clone rescue v }
             copy
         end
 
@@ -386,6 +387,7 @@ class BatchKit
         def dup
             copy = super
             copy.instance_variable_set(:@lookup_keys, @lookup_keys.dup)
+            copy.each{ |k, v| copy[k] = v.dup rescue v }
             copy
         end
 
