@@ -39,7 +39,7 @@ class BatchKit
                 raise ArgumentError, "job_class must be a Class" unless job_class.is_a?(Class)
                 @job_class = job_class
                 @file = job_file
-                @name = job_name || job_class.name.gsub(/([^A-Z ])([A-Z])/, '\1 \2').
+                @name = job_name || job_class.name.gsub(/([^A-Z_ ])([A-Z])/, '\1 \2').
                     gsub(/_/, ' ').gsub('::', ':').gsub(/\b([a-z])/) { $1.upcase }
                 @computer = Socket.gethostname
                 @method_name = nil
