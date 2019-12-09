@@ -58,6 +58,7 @@ class BatchKit
                         fmt = Java::JavaUtilLogging::SimpleFormatter.new
                     end
                     fh.setFormatter(fmt)
+                    fh.setLevel(Java::JavaUtilLogging::Level::FINE)
                     self.addHandler(fh)
                 end
             end
