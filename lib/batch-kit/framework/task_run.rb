@@ -25,8 +25,8 @@ class BatchKit
             # @param run_args [Array<Object>] An array of the argument values
             #   passed to the task method.
             def initialize(task_def, job_object, job_run, *run_args)
-                raise ArgumentError, "task_def not a Task::Definition" unless task_def.is_a?(Task::Definition)
-                raise ArgumentError, "job_run not a Job::Run" unless job_run.is_a?(Job::Run)
+                raise ArgumentError, "task_def (#{task_def.class}) not a Task::Definition" unless task_def.is_a?(Task::Definition)
+                raise ArgumentError, "job_run (#{job_run.class}) not a Job::Run" unless job_run.is_a?(Job::Run)
                 @job_run = job_run
                 @job_run << self
                 super(task_def, job_object, run_args)

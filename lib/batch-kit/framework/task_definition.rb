@@ -15,7 +15,7 @@ class BatchKit
             #   assigned by the persistence layer.
             add_properties(
                 # Properties defined by a task declaration
-                :job, :method_name,
+                :job, :task_class, :method_name,
                 # Properties defined by persistence layer
                 :task_id
             )
@@ -69,6 +69,7 @@ class BatchKit
                 # Look up the task from the actual job_obj class, so that we get the right
                 # task instance (in the case of sub-classing) to create the task run for
                 task = job_obj.job.tasks[self.method_name]
+                raise "No task found for #{self.method_name}" unless task
                 task_run = Task::Run.new(task, job_obj, job_obj.job_run, *args)
                 @runs << task_run
                 task_run

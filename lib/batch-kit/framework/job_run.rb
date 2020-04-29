@@ -58,7 +58,7 @@ class BatchKit
             #   passed to the job method.
             def initialize(job_def, job_object, *run_args)
                 raise ArgumentError unless job_def.is_a?(Job::Definition)
-                @run_by = Etc.getlogin
+                @run_by = Etc.getlogin || '(unknown)'
                 @cmd_line = "#{$0} #{ARGV.map{ |s| s =~ / |^\*$/ ? %Q{"#{s}"} : s }.join(' ')}".strip
                 @pid = ::Process.pid
                 @task_runs = []

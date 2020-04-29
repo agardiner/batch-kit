@@ -53,7 +53,7 @@ class BatchKit
                             unless @tasks.has_key?(method_name)
                                 new_td = task_def.clone
                                 new_td.job = self
-                                @tasks[name] = new_td
+                                @tasks[method_name] = new_td
                             end
                         end
                     end
