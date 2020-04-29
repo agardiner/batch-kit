@@ -26,10 +26,10 @@ class BatchKit
                     delivery_method :smtp, cfg.smtp
                 end
 
-                Mail.new(to: mail_list(cfg[:to]),
-                         cc: mail_list(cfg[:cc]),
-                         from: cfg[:email_from] || "#{self.job.job_class.name}@#{self.job.computer}",
-                         reply_to: mail_list(cfg[:reply_to]))
+                Mail.new(to: mail_list(cfg.smtp[:to]),
+                         cc: mail_list(cfg.smtp[:cc]),
+                         from: cfg.smtp[:email_from] || "#{self.job.job_class.name}@#{self.job.computer}",
+                         reply_to: mail_list(cfg.smtp[:reply_to]))
             end
 
 
