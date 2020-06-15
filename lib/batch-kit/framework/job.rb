@@ -37,6 +37,9 @@ class BatchKit
         # arguments from the command-line, and then executes the job.
         def self.run(args = ARGV)
             if @@enabled
+                if args.delete('--do-not-track')
+                    self.job_definition.do_not_track = true
+                end
                 if !@shell && (args.length == 0 && self.args_def.keys.length > 0) || args.include?('--shell')
                     args.delete_if{ |arg| arg == '--shell' }
                     shell(args)
