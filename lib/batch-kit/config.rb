@@ -484,7 +484,7 @@ class BatchKit
         # Convert the supplied key to a lower-case symbol representation, which
         # is the key to the @lookup_keys hash.
         def convert_key(key)
-            key.to_s.downcase.gsub(' ', '_').intern
+            key.to_s.downcase.gsub(/[ _]/, '').intern
         end
 
 
