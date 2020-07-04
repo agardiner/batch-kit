@@ -144,7 +144,12 @@ class BatchKit
             #   email. If no recipients are specified, the configured recipients
             #   will receive the failure email.
             def send_failure_email(cfg = config, recipients = nil)
-                unless cfg.is_a?(Hash)
+                case cfg
+                when Exception
+                    # Called directly from #on_failure
+                    cfg = config
+                when Hash
+                else
                     recipients = cfg
                     cfg = config
                 end
