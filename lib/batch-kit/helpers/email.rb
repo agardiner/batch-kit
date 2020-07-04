@@ -141,7 +141,8 @@ class BatchKit
             # Sends a failure email message in response to a job failure.
             #
             # @param recipients [String|Array] The recipient(s) to receive the
-            #   email. If no recipients are specified, the con
+            #   email. If no recipients are specified, the configured recipients
+            #   will receive the failure email.
             def send_failure_email(cfg = config, recipients = nil)
                 unless cfg.is_a?(Hash)
                     recipients = cfg
