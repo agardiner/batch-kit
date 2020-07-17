@@ -36,6 +36,7 @@ module FileUtils
         else
             options = {archive_copies: 10}
         end
+        log = options[:log]
         archive_dir = options[:archive_dir] || @archive_dir
         archive_copies = options[:archive_copies]
         if archive_copies && 1 > archive_copies
@@ -53,13 +54,19 @@ module FileUtils
         archive_count = 0
         Dir[*paths].each do |file_name|
             next if file_name =~ /\d{8}.\d{6}(?:\.[^.]+)?$/
-            File.rename(file_name, '%s/%s.%s%s' % [
-                            archive_dir || File.dirname(file_name),
-                            File.basename(file_name, File.extname(file_name)),
-                            File.mtime(file_name).strftime('%Y%m%d.%H%M%S'),
-                            File.extname(file_name)
-                        ]) rescue next
-            archive_count += 1
+            archive_name = '%s/%s.%s%s' % [
+                archive_dir || File.dirname(file_name),
+                File.basename(file_name, File.extname(file_name)),
+                File.mtime(file_name).strftime('%Y%m%d.%H%M%S'),
+                File.extname(file_name)
+            ]
+            begin
+                File.rename(file_name, archive_name)
+                log.detail "Archived #{file_name} to #{File.basename(archive_name)}" if log
+                archive_count += 1
+            rescue => ex
+                log.error "Unable to archive #{file_name}: #{ex}" if log
+            end
         end
 
         if archive_copies || cutoff_date
@@ -92,7 +99,8 @@ module FileUtils
                     purge_files.concat(vold_files) if vold_files
                 end
                 if purge_files.size > 0
-                    FileUtils.rm_f(purge_files) rescue nil
+                    purged = FileUtils.rm_f(purge_files) rescue nil
+                    log.detail "Purged #{purged.size} files" if log
                 end
             end
         end
