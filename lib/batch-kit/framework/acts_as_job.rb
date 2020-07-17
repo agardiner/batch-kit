@@ -158,8 +158,8 @@ class BatchKit
             #   represents the completing job run.
             # 
             def on_completion(mthd = nil, &blk)
-                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.send(mthd, jr) } if mthd
-                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.instance_exec(jr, &blk) } if blk
+                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.send(mthd) } if mthd
+                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.instance_exec(&blk) } if blk
             end
 
         end

@@ -132,8 +132,8 @@ class BatchKit
             unless (oid = ex.object_id) == @last_id
                 @last_id = oid
                 # Strip out framework methods from backtrace
-                ex.backtrace.reject!{ |f| f =~ /lib.batch-kit.framework/ }
-                obj.log.error "#{ex} at #{ex.backtrace.first}"
+                ex.backtrace.reject!{ |f| f =~ /lib.batch-kit.framework|RubyMethod/ }
+                obj.log.error "#{ex} at #{ex.backtrace.join("\n")}"
             end
         end
 

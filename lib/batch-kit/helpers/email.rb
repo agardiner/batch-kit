@@ -82,15 +82,9 @@ class BatchKit
                                   {name: :start_time, label: 'Start Time'},
                                   {name: :end_time, label: 'End Time'},
                                   {label: 'Duration', class: 'right',
-                                   value: lambda{ |tr| DateTime.display_duration(tr.elapsed) }})
-                body.slice!(-2..-1)
-                body << "<tr><th>#{self.job.name}</th>"
-                body << "<th>#{self.job_run.instance}</th>" if has_instances
-                body << "<th class='right'>#{self.job_run.start_time.strftime("%H:%M:%S")}</th>"
-                body << "<th class='right'></th>"
-                body << "<th class='right'>#{DateTime.display_duration(self.job_run.elapsed)}</th></tr>"
-                body << "</tbody>"
-                body << "</table>"
+                                   value: lambda{ |tr| DateTime.display_duration(tr.elapsed) }},
+                                  {label: 'Status', value: lambda{ |tr| tr.status.to_s.upcase }},
+                                  {footer: self.job_run})
                 body << "<br>"
             end
 
@@ -98,48 +92,52 @@ class BatchKit
             # Creates an email message containing details of the exception that
             # caused this job to fail.
             def create_failure_email(cfg = config)
-                msg = create_email(cfg)
-                to = cfg[:failure_email_to]
-                to = to.join(', ') if to.is_a?(Array)
-                cc = cfg[:failure_email_cc]
-                cc = cc.join(', ') if cc.is_a?(Array)
-                msg.to = to
-                msg.cc = cc
+                msg = create_html_email(cfg) do |body|
+                    # Add details of the failed job and task runs
+                    self.job.runs.each do |jr|
+                        ex = nil
+                        jr.task_runs.select{ |tr| tr.exception != nil }.each do |tr|
+                            ex = tr.exception
+                            body << "<h2>Task Failure</h2>"
+                            body << "<p>Job <b>#{jr.label}</b> has <b class='red'>failed</b> in task <b>#{tr.label}</b> with #{
+                                ex.class.name}</b>:</p>"
+                            body << "<div><span class='error'>#{ex.message}</span></div>"
+                            body << "<br>"
+                            body << "<h3>Backtrace</h3>"
+                            body << "<code>"
+                            body << ex.backtrace.join("<br>\n")
+                            body << "</code>"
+                        end
+                        if ex != jr.exception
+                            body << "<h2>Job Failure</h2>"
+                            body << "<p>Job <b>#{jr.label}</b> has <b class='red'>failed</b> with <b>#{
+                                    jr.exception.class.name}</b>:</p>"
+                            body << "<div><span class='error'>#{jr.exception.message}</span></div>"
+                            body << "<br>"
+                            body << "<h3>Backtrace</h3>"
+                            body << "<code>"
+                            body << jr.exception.backtrace.join("<br>\n")
+                            body << "</code>"
+                        end
+                    end
+                    
+                    # Add job log file as attachment (if it exists)
+                    if self.log.log_file
+                        body << "<p>See the attached log for details.</p>"
+                    end
+                end
+                msg.to = mail_list(cfg[:failure_email_to])
+                msg.cc = mail_list(cfg[:failure_email_cc])
                 msg.subject = "#{self.job.name} job on #{self.job.computer} Failed!"
-
-                # Add details of the failed job and task runs
-                body = []
-                self.job.runs.each do |jr|
-                    ex = nil
-                    jr.task_runs.select{ |tr| tr.exception != nil }.each do |tr|
-                        ex = tr.exception
-                        body << "Job '#{jr.label}' has failed in task '#{tr.label}'."
-                        body << "\n#{ex.class.name}: #{ex.message}"
-                        body << "\nBacktrace:"
-                        body += ex.backtrace
-                        body << "\n"
-                    end
-                    if ex != jr.exception
-                        body << "Job '#{jr.label}' has failed."
-                        body << "\n#{jr.exception.class.name}: #{jr.exception.message}"
-                        body << "\nBacktrace:"
-                        body += jr.exception.backtrace
-                        body << "\n"
-                    end
-                end
-
-                # Add job log file as attachment (if it exists)
-                if self.respond_to?(:log) && self.log.log_file
-                    body << "See the attached log for details.\n"
-                    msg.add_file(self.log.log_file)
-                end
-                msg.body = body.join("\n")
+                msg.add_file(self.log.log_file) if self.log.log_file
                 msg
             end
 
 
             # Sends a failure email message in response to a job failure.
             #
+            # @param cfg [BatchKit::Config] Configuration object containing
+            #   mail settings.
             # @param recipients [String|Array] The recipient(s) to receive the
             #   email. If no recipients are specified, the configured recipients
             #   will receive the failure email.

@@ -16,7 +16,7 @@ class BatchKit
                     body_text = nil
                 end
 
-                hdr = <<-EOS.gsub(/\s{20}/, '')
+                hdr = <<-EOS.gsub(/^ {20}/, '')
                     <html>
                     #{create_head_tag(opts)}
                     <body>
@@ -24,7 +24,7 @@ class BatchKit
                 body = [hdr]
                 body << body_text if body_text
                 yield body if block_given?
-                body << <<-EOS.gsub(/\s{20}/, '')
+                body << <<-EOS.gsub(/^ {20}/, '')
                     </body>
                     </html>
                 EOS
@@ -32,7 +32,7 @@ class BatchKit
 
 
             def create_head_tag(opts = {})
-                head_tag = <<-EOS.gsub(/^\w+\n$/, '')
+                head_tag = <<-EOS.gsub(/^ {20}/, '')
                     <head>
                     <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=us-ascii">
                     #{opts[:title] ? "<title>#{opts[:title]}</title>" : ''}
@@ -44,34 +44,42 @@ class BatchKit
 
             def create_style_tag(opts = {})
                 font = opts.fetch(:font, 'Calibri')
-                style_tag = <<-EOS
+                style_tag = <<-EOS.gsub{/^ {20}/, ''}
                     <style>
                         @font-face {font-family: #{font};}
 
-                        h1      {font-family: #{font}; font-size: 16pt;}
-                        h2      {font-family: #{font}; font-size: 14pt; margin: 1em 0em .2em;}
-                        h3      {font-family: #{font}; font-size: 12pt; margin: 1em 0em .2em;}
-                        body    {font-family: #{font}; font-size: 11pt;}
-                        p       {margin: .2em 0em;}
-                        table   {font-family: #{font}; font-size: 10pt;
-                                 line-height: 12pt; border-collapse: collapse;}
-                        th      {background-color: #00205B; color: white;
-                                 font-size: 11pt; font-weight: bold; text-align: left;
-                                 border: 1px solid #DDDDFF; padding: 1px 5px;}
-                        td      {border: 1px solid #DDDDFF; padding: 1px 5px;}
+                        h1              {font-family: #{font}; font-size: 16pt; margin: 2em 0em .2em;}
+                        h2              {font-family: #{font}; font-size: 14pt; margin: 1em 0em .2em;}
+                        h3              {font-family: #{font}; font-size: 12pt; margin: 1em 0em .2em;}
+                        body            {font-family: #{font}; font-size: 11pt;}
+                        p               {margin: .2em 0em;}
+                        table           {font-family: #{font}; font-size: 10pt;
+                                         line-height: 12pt; border-collapse: collapse;}
+                        th              {background-color: #00205B; color: white;
+                                         font-size: 11pt; font-weight: bold; text-align: left;
+                                         border: 1px solid #DDDDFF; padding: 1px 5px;}
+                        td              {border: 1px solid #DDDDFF; padding: 1px 5px;}
 
-                        .summary    {font-size: 13pt;}
-                        .red        {background-color: white; color: #FF0000;}
-                        .amber      {background-color: white; color: #FFA500;}
-                        .green      {background-color: white; color: #33A000;}
-                        .blue       {background-color: white; color: #0000A0;}
-                        .bold       {font-weight: bold;}
-                        .center     {text-align: center;}
-                        .right      {text-align: right;}
-                        .separator  {width: 200px; border-bottom: 1px gray solid;}
+                        .summary        {font-size: 13pt;}
+                        .black          {background-color: white: color: #000000;}
+                        .red            {background-color: white; color: #FF0000;}
+                        .amber          {background-color: white; color: #FFA500;}
+                        .green          {background-color: white; color: #33A000;}
+                        .blue           {background-color: white; color: #0000A0;}
+                        .bold           {font-weight: bold;}
+                        .center         {text-align: center;}
+                        .right          {text-align: right;}
+                        .center_red     {text-align: center; background-color: white; color: #FF0000;}
+                        .center_amber   {text-align: center; background-color: white; color: #FFA500;}
+                        .center_green   {text-align: center; background-color: white; color: #33A000;}
+                        .center_blue    {text-align: center; background-color: white; color: #0000A0;}
+                        .right_red      {text-align: right; background-color: white; color: #FF0000;}
+                        .right_amber    {text-align: right; background-color: white; color: #FFA500;}
+                        .right_green    {text-align: right; background-color: white; color: #33A000;}
+                        .right_blue     {text-align: right; background-color: white; color: #0000A0;}
+                        .separator      {width: 200px; border-bottom: 1px #C0C0C0 solid;}
+                        .error          {padding: 5px; color: #FF0000; background-color: #F4F5F7;}
                     </style>
-                    </head>
-                    <body>
                 EOS
             end
 
@@ -96,6 +104,11 @@ class BatchKit
             #     - :prefix is any text that should appear before the content.
             #     - :suffix is any text that should appear after the content.
             def create_html_table(body, data, *cols)
+                if cols.last.is_a?(Hash) && cols.last.has_key?(:footer)
+                    opts = cols.pop
+                else
+                    opts = {}
+                end
                 cols.map!{ |col| col.is_a?(Symbol) || col.is_a?(String) ? {name: col.intern} : col }
                 body << "<table>"
                 body << "<thead><tr>"
@@ -111,6 +124,11 @@ class BatchKit
                     body << "</tr>"
                 end
                 body << "</tbody>"
+                if opts[:footer]
+                    body << "<tfoot><tr>"
+                    add_table_cells(body, opts[:footer], cols, :th)
+                    body << "</tr></tfoot>"
+                end
                 body << "</table>"
             end
 
