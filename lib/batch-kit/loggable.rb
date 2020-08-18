@@ -16,17 +16,20 @@ class BatchKit
         if defined?(BatchKit::Events)
 
             # Subscribe to batch-kit lifecycle events that should be logged
-            Events.subscribe(Configurable, 'config.post-load') do |job_cls, cfg|
-                if cfg.has_key?(:log_level) || cfg.has_key?(:log_file)
-                    log = LogManager.logger(job_cls.name)
-                    if cfg[:log_level]
-                        log.level = cfg[:log_level]
-                        log.config "Log level set to #{cfg[:log_level].upcase}"
-                    end
-                    if cfg.has_key?(:log_file)
-                        log.config "Logging output to: #{cfg[:log_file]}" if cfg[:log_file]
-                        FileUtils.mkdir_p(File.dirname(cfg[:log_file]))
-                        LogManager.logger.log_file = cfg[:log_file]
+            Events.subscribe(Runnable, ['sequence_run.initialized', 'job_run.initialized']) do |run|
+                if run.object.respond_to(:config) && run.object.respond_to(:log)
+                    cfg = run.object.config
+                    log = run.object.log
+                    if cfg.has_key?(:log_level) || cfg.has_key?(:log_file)
+                        if cfg[:log_level]
+                            log.level = cfg[:log_level]
+                            log.config "Log level set to #{cfg[:log_level].upcase}"
+                        end
+                        if cfg.has_key?(:log_file)
+                            log.config "Logging output to: #{cfg[:log_file]}" if cfg[:log_file]
+                            FileUtils.mkdir_p(File.dirname(cfg[:log_file]))
+                            log.log_file = cfg[:log_file]
+                        end
                     end
                 end
             end
