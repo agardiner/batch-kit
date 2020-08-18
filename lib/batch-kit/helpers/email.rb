@@ -75,7 +75,7 @@ class BatchKit
                 body << "<br>"
                 body << "<div class='separator'></div>"
                 body << "<p>"
-                body << "<p>Job execution details:</p>"
+                body << "<h3>Job Execution Details</h3>"
                 create_html_table(body, self.job_run.task_runs,
                                   {name: :name, label: 'Task'},
                                   {name: :instance, show: has_instances},

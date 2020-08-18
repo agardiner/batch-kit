@@ -58,6 +58,9 @@ class BatchKit
                         th              {background-color: #00205B; color: white;
                                          font-size: 11pt; font-weight: bold; text-align: left;
                                          border: 1px solid #DDDDFF; padding: 1px 5px;}
+                        tfoot th        {background-color: #DDDDFF; color: black;
+                                         font-size: 10pt; font-weight: normal; text-align: left;
+                                         border: 1px solid #DDDDFF; padding: 1px 5px;}
                         td              {border: 1px solid #DDDDFF; padding: 1px 5px;}
 
                         .summary        {font-size: 13pt;}
