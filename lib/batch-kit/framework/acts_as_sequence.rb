@@ -83,6 +83,36 @@ class BatchKit
                 @__sequence__
             end
 
+
+            # Defines a handler to be invoked if the sequence encounters an unhandled
+            # exception.
+            def on_failure(mthd = nil, &blk)
+                Events.subscribe(self, 'sequence_run.failure'){ |obj, jr, ex| obj.send(mthd, ex) } if mthd
+                Events.subscribe(self, 'sequence_run.failure'){ |obj, jr, ex| obj.instance_exec(ex, &blk) } if blk
+            end
+
+
+            # Defines a handler to be invoked if the sequence ends successfully.
+            def on_success(mthd = nil, &blk)
+                Events.subscribe(self, 'sequence_run.success'){ |obj, jr| obj.send(mthd) } if mthd
+                Events.subscribe(self, 'sequence_run.success'){ |obj, jr| obj.instance_exec(&blk) } if blk
+            end
+
+
+            # Defines a handler to be invoked on completion of the sequence, whether
+            # the sequence completes successfully or fails. The handler may be specified
+            # as either a method name and/or via a block. Multiple calls to this
+            # method can be made to register multiple callbacks if desired.
+            #
+            # @param mthd [Symbol] The name of an existing method on the including
+            #   class. This method will be called with the Job::Run object that
+            #   represents the completing sequence run.
+            #
+            def on_completion(mthd = nil, &blk)
+                Events.subscribe(self, 'sequence_run.post-execute'){ |obj, jr, ok| obj.send(mthd) } if mthd
+                Events.subscribe(self, 'sequence_run.post-execute'){ |obj, jr, ok| obj.instance_exec(&blk) } if blk
+            end
+            
         end
 
 
