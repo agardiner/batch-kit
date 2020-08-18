@@ -112,6 +112,23 @@ class BatchKit
         end
 
 
+        # Run another job as a child of this one.
+        #
+        # @param job_cls [BatchKit::Job] The class representing the job to run
+        #   as a child job.
+        # @param args [Array|Hash] An array of command-line tokens, or a hash of
+        #   argument keys and values.
+        def run_job(job_cls, args)
+            if block_given?
+                job = job_cls.new
+                job.parse_arguments(args, false)
+                yield job, job.arguments
+            else
+                job_cls.run_once(args, false)
+            end
+        end
+
+
         Events.subscribe(self, 'job_run.execute') do |obj, run, *args|
             Console.title = run.label
         end

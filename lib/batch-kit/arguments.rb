@@ -11,6 +11,28 @@ class BatchKit
         include ArgParser::DSL
 
 
+        module JobClassMethods
+
+            # Import arguments defined on a Job into this sequence
+            def self.import_args(source, options={})
+                unless source.is_a?(ArgParser::Definition)
+                    source = source.args_def
+                end
+                exclude = [options[:except]].flatten
+                source.args.each do |arg|
+                    unless exclude.include?(arg.key)
+                        arg = arg.clone
+                        if self.args_def.short_keys.include?(arg.short_key)
+                            arg.instance_variable_set :@short_key, nil
+                        end
+                        self.args_def << arg
+                    end
+                end
+            end
+
+        end
+
+
         # Adds an arguments accessor that returns the results from parsing the
         # command-line.
         attr_reader :arguments
@@ -50,6 +72,7 @@ class BatchKit
         # Add class methods when module is included
         def self.included(base)
             base.extend(ClassMethods)
+            base.extend(JobClassMethods)
         end
 
     end

@@ -16,7 +16,7 @@ class BatchKit
         if defined?(BatchKit::Events)
 
             # Subscribe to batch-kit lifecycle events that should be logged
-            Events.subscribe(Runnable, ['sequence_run.initialized', 'job_run.initialized']) do |run|
+            Events.subscribe(Runnable, 'job_run.initialized') do |run|
                 if run.object.respond_to(:config) && run.object.respond_to(:log)
                     cfg = run.object.config
                     log = run.object.log
@@ -33,9 +33,6 @@ class BatchKit
                     end
                 end
             end
-            Events.subscribe(Loggable, 'sequence_run.execute') do |job_obj, run, *args|
-                job_obj.log.info "Sequence '#{run.label}' started"
-            end
             Events.subscribe(Loggable, 'job_run.execute') do |job_obj, run, *args|
                 id = run.job_run_id ? " as job run #{run.job_run_id}" : ''
                 job_obj.log.info "Job '#{run.label}' started on #{run.computer} by #{run.run_by}#{id}"
@@ -44,7 +41,7 @@ class BatchKit
                 id = run.task_run_id ? " as task run #{run.task_run_id}" : ''
                 job_obj.log.info "Task '#{run.label}' started#{id}"
             end
-            %w{sequence_run job_run task_run}.each do |runnable|
+            %w{job_run task_run}.each do |runnable|
                 Events.subscribe(Loggable, "#{runnable}.post-execute") do |job_obj, run, ok|
                     job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
                         ok ? 'successfully' : 'with errors'} in #{'%.3f' % run.elapsed} seconds"
