@@ -17,9 +17,6 @@ class BatchKit
                 :debug => Java::JavaUtilLogging::Level::FINEST
             }
 
-            # @return The path to any log file used with this logger
-            attr_reader :log_file
-
 
             def initialize(logger)
                 @java_logger = logger
@@ -36,6 +33,22 @@ class BatchKit
             end
 
 
+            def log_file(search_parents=true)
+                fh = nil
+                jl = @java_logger
+                while jl
+                    fh = jl.getHandlers().find{ |h| h.is_a?(Java::JavaUtilLogging::FileHandler) }
+                    break if fh || !search_parents
+                    jl = @java_logger.getParent()
+                end
+                if fh
+                    fld = fh.java_class.declared_field('files')
+                    fld.accessible = true
+                    fld.value(fh)[0].path
+                end
+            end
+
+
             # Adds a FileHandler to capture output from this logger to a log file.
             def log_file=(log_path)
                 @java_logger.getHandlers().each do |h|
@@ -44,7 +57,6 @@ class BatchKit
                         h.close()
                     end
                 end
-                @log_file = log_path
                 if log_path
                     # Java logger does not follow changes in working directory via Dir.chdir
                     log_path = File.absolute_path(log_path)
