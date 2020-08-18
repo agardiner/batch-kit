@@ -374,6 +374,23 @@ class BatchKit
         end
 
 
+        # Navigate a nested set of Config objects using +key_path+, and return
+        # the value at the nested location. If any part of the path is missing,
+        # returns +default+.
+        def value_at(key_path, default=nil, path_sep='.')
+            keys = key_path.split(path_sep)
+            lvl_cfg = self
+            keys.each do |key|
+                if lvl_cfg.has_key?(key)
+                    lvl_cfg = lvl_cfg[key]
+                else
+                    return default
+                end
+            end
+            lvl_cfg
+        end
+
+
         # Override #clone to also clone contents of @lookup_keys.
         def clone
             copy = super
