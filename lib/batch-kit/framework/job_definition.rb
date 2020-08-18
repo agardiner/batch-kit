@@ -95,7 +95,7 @@ class BatchKit
             end
 
 
-            # Create a new Job::Run object for a run of thie job.
+            # Create a new Job::Run object for a run of this job.
             #
             # @param job_obj [Object] The job object that is running this job.
             # @param args [Array<Object>] The arguments passed to the job method.

@@ -1,15 +1,15 @@
 class BatchKit
 
-    module Sequence
+    class Sequence
 
-        # Captures details of an execution of a task.
+        # Captures details of an execution of a sequence.
         class Run < Runnable
 
             # @return [Fixnum] An integer identifier that uniquely identifies
-            #    this task run.
+            #    this sequence run.
             attr_accessor :sequence_run_id
 
-            # Make Task::Defintion properties accessible off this Task::Run.
+            # Make Sequence::Defintion properties accessible off this Sequence::Run.
             add_delegated_properties(*Sequence::Definition.properties)
 
 
@@ -17,13 +17,13 @@ class BatchKit
             #
             # @param task_def [Sequence::Definition] The Sequence::Definition to
             #   which this run relates.
-            # @param job_object [Object] The job object instance from which the
+            # @param seq_object [Object] The seq object instance from which the
             #   sequence is being executed.
             # @param run_args [Array<Object>] An array of the argument values
             #   passed to the sequence method.
-            def initialize(seq_def, job_object, *run_args)
+            def initialize(seq_def, seq_object, *run_args)
                 raise ArgumentError, "seq_def not a Sequence::Definition" unless seq_def.is_a?(Sequence::Definition)
-                super(seq_def, job_object, run_args)
+                super(seq_def, seq_object, run_args)
             end
 
 

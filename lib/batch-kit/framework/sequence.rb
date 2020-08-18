@@ -1,3 +1,8 @@
+require_relative '../arguments'
+require_relative '../configurable'
+require_relative '../loggable'
+
+
 class BatchKit
 
     class Sequence
@@ -57,28 +62,12 @@ class BatchKit
 
 
         def run(job_cls, args)
-            job = job_cls.new
-            keys, vals = [], []
-            job_cls.args_def.args.each do |arg|
-                keys << arg.key
-                if args.has_key?(arg.key)
-                    vals << args[arg.key]
-                elsif self.args_def.has_key?(arg.key)
-                    vals << self.arguments.send(arg.key)
-                else
-                    vals << nil
-                end
-            end
-            job_args = Struct.new(*keys)
-            job_arg_vals = job_args.new(*vals)
-            job.instance_variable_set(:@arguments, job_arg_vals)
             if block_given?
-                yield job, job_arg_vals
+                job = job_cls.new
+                job.parse_arguments(args, false)
+                yield job, job.arguments
             else
-                unless job_cls.job.method_name
-                    raise "No job entry method has been defined; use job :<method_name> or job do ... end in your class"
-                end
-                job.send(job_cls.job.method_name)
+                job_cls.run_once(args, false)
             end
         end
 

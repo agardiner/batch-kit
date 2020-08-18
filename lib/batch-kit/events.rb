@@ -48,6 +48,10 @@ class BatchKit
 
         class << self
 
+
+            attr_reader :log
+
+
             # @param source [Object] The source of the event
             # @param event [String] The name of the event
             # @return [Boolean] whether there are any subscribers for the specified

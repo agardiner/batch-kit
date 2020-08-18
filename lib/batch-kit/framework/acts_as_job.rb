@@ -156,7 +156,7 @@ class BatchKit
             # @param mthd [Symbol] The name of an existing method on the including
             #   class. This method will be called with the Job::Run object that
             #   represents the completing job run.
-            # 
+            #
             def on_completion(mthd = nil, &blk)
                 Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.send(mthd) } if mthd
                 Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.instance_exec(&blk) } if blk
