@@ -18,11 +18,6 @@ class BatchKit
             #   identifies this job run.
             # @!attribute :pid [Fixnum] A process identifier (PID) for the process
             #   that is running the job.
-            # @!attribute :request_id [Fixnum] An integer identifier that links this
-            #   job run to a job run request (if job is run on-demand).
-            # @!attribute :requestors [Array<String>] A list of the requestor(s) that
-            #   requested for this job to be run. May be more than one if the request
-            #   has been in a queue.
             # @!attribute :start_time [Time] Time at which the job started
             #   executing.
             # @!attribute :end_time [Time] Time at which the job ended execution.
@@ -36,8 +31,7 @@ class BatchKit
             #   run).
             PROPERTIES = [
                 :run_by, :pid, :job_run_id,
-                :cmd_line, :job_args,
-                :request_id, :requestors, :task_runs
+                :cmd_line, :job_args, :task_runs
             ]
             # Define accessors for each property
             PROPERTIES.each do |attr|

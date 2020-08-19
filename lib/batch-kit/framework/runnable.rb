@@ -34,6 +34,9 @@ class BatchKit
         # The instance qualifier for this runnable, if it has an instance
         # qualifier.
         attr_reader :instance
+        # The parent Runnable (if any) on the current thread that triggered
+        #   this run.
+        attr_reader :parent
         # Current status of this process.
         # One of the following states:
         #   :initialized
@@ -48,7 +51,7 @@ class BatchKit
         # Time at which processing completed (or nil)
         attr_reader :end_time
         # Exit code of the process
-        attr_reader :exit_code
+        attr_accessor :exit_code
         # Exception thrown that caused process to fail
         attr_accessor :exception
         # Name of any exclusive lock needed by this run
@@ -65,6 +68,7 @@ class BatchKit
             @definition = definition
             @object = obj
             @instance = eval_property_expr(definition.instance, obj, run_args)
+            @parent = (Thread.current[:batch_kit_stack] || []).last
             @status = :initialized
             @lock_name = eval_property_expr(definition.lock_name, obj, run_args)
             @lock_timeout = case definition.lock_timeout
@@ -133,8 +137,10 @@ class BatchKit
             @start_time = Time.now
             @status = :executing
             @exit_code = nil
-            Events.publish(process_obj, event_name('execute'), self, *args)
+            stack = Thread.current[:batch_kit_stack] ||= []
+            stack.push(self)
             begin
+                Events.publish(process_obj, event_name('execute'), self, *args)
                 if @lock_name
                     self.with_lock(@lock_name, @lock_timeout, @lock_wait_timeout, &blk)
                 else
@@ -142,6 +148,7 @@ class BatchKit
                 end
             ensure
                 @end_time = Time.now
+                stack.pop
             end
         end
 

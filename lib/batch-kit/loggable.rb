@@ -25,7 +25,7 @@ class BatchKit
                             log.level = cfg[:log_level]
                             log.config "Log level set to #{cfg[:log_level].upcase}"
                         end
-                        if cfg.has_key?(:log_file)
+                        if run.parent.nil? && cfg.has_key?(:log_file)
                             log.config "Logging output to: #{cfg[:log_file]}" if cfg[:log_file]
                             FileUtils.mkdir_p(File.dirname(cfg[:log_file]))
                             log.log_file = cfg[:log_file]
