@@ -130,8 +130,8 @@ class BatchKit
                             run.success(self, result)
                             result
                         rescue Exception => ex
-                            run.failure(self, ex) unless ok
-                            raise
+                            disposition = run.failure(self, ex) unless ok
+                            raise unless Events::Token::SUPPRESS_EXCEPTION == disposition
                         rescue Interrupt
                             run.abort(self) unless ok
                             raise

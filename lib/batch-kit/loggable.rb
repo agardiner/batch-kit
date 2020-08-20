@@ -46,6 +46,9 @@ class BatchKit
                     job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
                         ok ? 'successfully' : 'with errors'} in #{'%.3f' % run.elapsed} seconds"
                 end
+                Events.subscribe(Loggable, "#{runnable}.skipped") do |job_obj, run, ok|
+                    job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' skipped"
+                end
             end
 
             Events.subscribe(Lockable, 'lock_wait') do |job_run, lock_name|

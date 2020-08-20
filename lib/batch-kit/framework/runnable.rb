@@ -114,7 +114,7 @@ class BatchKit
         #   should be skipped.
         def pre_execute(process_obj, *args)
             if Events.has_subscribers?(process_obj, event_name('pre-execute'))
-                run = Events.publish(process_obj, event_name('pre-execute'), self, *args)
+                run = Events::Token::SKIP_RUN != Events.publish(process_obj, event_name('pre-execute'), self, *args)
             else
                 run = true
             end

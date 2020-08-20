@@ -45,6 +45,51 @@ class BatchKit
         end
 
 
+        # Represents special tokens that an event handler can use to signal the
+        # event source to alter standard behaviour.
+        # As an event may have many handlers, and most won't care what they
+        # return, we need a way to filter out the significant return values from
+        # the rest. A Token when combined with any non-token will always return
+        # the token. If no token is returned, the non-token values are and-ed
+        # to form the return value from the event publication.
+        class Token
+
+            attr_reader :value, :result
+            
+
+            def initialize(value, result=value)
+                @value = value
+                @result = result
+            end
+
+
+            def combine(oth)
+                if oth.is_a?(Token) && @value.nil
+                    oth
+                else
+                    self
+                end
+            end
+
+
+            def ==(oth)
+                oth.is_a?(Token) && oth.value == @value
+            end
+
+
+            def result
+                @value ? self : @result
+            end
+
+
+            # Token used to signal a Runnable should not be run
+            SKIP_RUN = Token.new(:skip_run)
+            # Toekn used to indicate a failure event should suppress the exception
+            SUPPRESS_EXCEPTION = Token.new(:suppress_exception)
+
+        end
+
+
 
         class << self
 
@@ -104,7 +149,7 @@ class BatchKit
             # @param payload [*Object] Arguments passed with the event.
             def publish(source, event, *payload)
                 @log.trace "Publishing event '#{event}' for #{source}" if @log
-                res = true
+                res = Token.new(nil, true)
                 count = 0
                 if subscribers.has_key?(event)
                     subscribers[event].each do |sub|
@@ -112,7 +157,7 @@ class BatchKit
                             begin
                                 r = sub.callback.call(source, *payload)
                                 count += 1
-                                res &&= r
+                                res = res.combine(r)
                             rescue StandardError => ex
                                 if sub.raise_on_error
                                     raise
@@ -125,7 +170,7 @@ class BatchKit
                     end
                     @log.debug "Notified #{count} listeners of '#{event}'" if @log
                 end
-                res
+                res.result
             end
 
 
