@@ -13,7 +13,7 @@ class BatchKit
 
         module JobClassMethods
 
-            # Import arguments defined on a Job into this sequence
+            # Import arguments defined on a Job into this class
             def self.import_args(source, options={})
                 unless source.is_a?(ArgParser::Definition)
                     source = source.args_def
@@ -40,12 +40,10 @@ class BatchKit
 
         # Parse command-line arguments
         def parse_arguments(args = ARGV, show_usage_on_error = true)
+            args_def = self.class.args_def
             if defined?(BatchKit::Job) && self.is_a?(BatchKit::Job)
                 args_def.title ||= self.job.name.titleize
                 args_def.purpose ||= self.job.description
-            elsif defined?(BatchKit::Sequence) && self.is_a?(BatchKit::Sequence)
-                args_def.title ||= self.sequence.name.titleize
-                args_def.purpose ||= self.sequence.description
             end
             arg_parser = ArgParser::Parser.new(args_def)
             @arguments = arg_parser.parse(args)
@@ -65,6 +63,7 @@ class BatchKit
                     exit(99)
                 end
             end
+            @args_def = arg_parser.definition
             @arguments
         end
 
