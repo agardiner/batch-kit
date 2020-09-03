@@ -56,7 +56,13 @@ class BatchKit
                 @cmd_line = "#{$0} #{ARGV.map{ |s| s =~ / |^\*$/ ? %Q{"#{s}"} : s }.join(' ')}".strip
                 @pid = ::Process.pid
                 @task_runs = []
-                @job_args = job_object.arguments if job_object.respond_to?(:arguments)
+                if job_object.respond_to?(:arguments)
+                    # Capture job arguments, but mask sensitive values
+                    @job_args = job_object.arguments.clone
+                    job_object.args_def.sensitive_args.each do |arg|
+                        @job_args[arg.key] = '******'
+                    end
+                end
                 super(job_def, job_object, run_args)
             end
 
