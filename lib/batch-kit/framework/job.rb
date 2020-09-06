@@ -40,7 +40,7 @@ class BatchKit
                 if args.delete('--do-not-track')
                     self.job_definition.do_not_track = true
                 end
-                if !@shell && (args.length == 0 && self.args_def.keys.length > 0) || args.include?('--shell')
+                if !@shell && args.include?('--shell')
                     args.delete_if{ |arg| arg == '--shell' }
                     shell(args)
                 else
@@ -129,16 +129,19 @@ class BatchKit
         end
 
 
-        Events.subscribe(self, 'job_run.execute') do |obj, run, *args|
-            Console.title = run.label
-        end
-
-        Events.subscribe(self, 'task_run.execute') do |obj, run, *args|
-            Console.title = "#{run.job_run.label} : #{run.label}"
-        end
-
-        Events.subscribe(self, 'task_run.post-execute') do |obj, run, *args|
-            Console.title = run.job_run.label
+        # Set console title to show current job/task on Windows only
+        # On Linux the title is persistent, whereas on Windows it is
+        # reset when the process ends
+        if Gem.win_platform?
+            Events.subscribe(self, 'job_run.execute') do |obj, run, *args|
+                Console.title = run.label
+            end
+            Events.subscribe(self, 'task_run.execute') do |obj, run, *args|
+                Console.title = "#{run.job_run.label} : #{run.label}"
+            end
+            Events.subscribe(self, 'task_run.post-execute') do |obj, run, *args|
+                Console.title = run.job_run.label
+            end
         end
 
 
