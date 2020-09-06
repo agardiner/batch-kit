@@ -145,7 +145,9 @@ class BatchKit
             # @param cols [Array<Hash>] An Array of Hashes, each containing
             #   details for a single column. Each Hash can contain the following
             #   options:
-            #     - :class: The CSS class with which to style the column cells.
+            #     - :class: The CSS class with which to style the column cells,
+            #       or a lambda that will return a class when called with the
+            #       cell value.
             #     - :show: A boolean value indicating whether the column should
             #       be displayed or skipped.
             #     - :prefix: Text to appear before the content of the cell.
@@ -157,11 +159,24 @@ class BatchKit
             # @param cell_type [Symbol] Either :td (the default) or :th.
             def add_table_cells(body, row, cols, cell_type = :td)
                 cols.each_with_index do |col, i|
+                    attrs = ''
                     cls = col[:class]
                     show = col.fetch(:show, true)
                     prefix = col.fetch(:prefix, '')
                     suffix = col.fetch(:suffix, '')
+                    span_col = col[:span_count]
+                    span_idx = col[:span_index]
+
+                    if span_col && span_idx && len(row) > span_idx
+                        if row[span_idx] == 1
+                            attrs += " rowspan='#{row[span_col]}'"
+                        else
+                            next
+                        end
+                    end
+                    
                     next if !show
+
                     val = case
                     when col[:value]
                         col[:value].call(row)
@@ -176,6 +191,11 @@ class BatchKit
                     else
                         row
                     end
+
+                    if cls.is_a?(Proc)
+                        cls = cls.call(val) rescue nil
+                    end
+
                     case val
                     when Numeric
                         val = val.with_commas
@@ -184,8 +204,11 @@ class BatchKit
                         val = val.strftime('%H:%M:%S')
                         cls = 'right' unless cls
                     end
-                    td = %Q{<#{cell_type}#{cls ? " class='#{cls}'" : ''}>#{prefix}#{val}#{suffix}</#{cell_type}>}
-                    body << td
+
+                    attrs += " class='#{cls}'" if cls
+
+                    cell = %Q{<#{cell_type}#{attrs}>#{prefix}#{val}#{suffix}</#{cell_type}>}
+                    body << cell
                 end
             end
 
