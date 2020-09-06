@@ -28,7 +28,8 @@ class BatchKit
                         if run.parent.nil? && cfg.has_key?(:log_file)
                             log.config "Logging output to: #{cfg[:log_file]}" if cfg[:log_file]
                             FileUtils.mkdir_p(File.dirname(cfg[:log_file]))
-                            log.log_file = cfg[:log_file]
+                            # Set log file at root logger level
+                            LogManager.logger.log_file = cfg[:log_file]
                         end
                     end
                 end

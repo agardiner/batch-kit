@@ -80,7 +80,9 @@ class BatchKit
                 java_mthd = LEVEL_MAP[lvl].getName().downcase.intern
                 class_eval <<-EOD
                     def #{lvl}(msg)
-                        @java_logger.#{java_mthd}(msg.to_s)
+                        unless msg.to_s.strip.size == 0
+                            @java_logger.#{java_mthd}(msg.to_s)
+                        end
                     end
                 EOD
             end
