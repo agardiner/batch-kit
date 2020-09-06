@@ -83,7 +83,8 @@ class BatchKit
                                   {name: :end_time, label: 'End Time'},
                                   {label: 'Duration', class: 'right',
                                    value: lambda{ |tr| DateTime.display_duration(tr.elapsed) }},
-                                  {label: 'Status', value: lambda{ |tr| tr.status.to_s.upcase }},
+                                  {label: 'Status', value: lambda{ |tr| tr.status.to_s.upcase },
+                                   class: lambda{ |status| status == 'COMPLETED' ? 'center_green' : 'center_red'}},
                                   {footer: self.job_run})
                 body << "<br>"
             end
@@ -141,24 +142,17 @@ class BatchKit
             # @param recipients [String|Array] The recipient(s) to receive the
             #   email. If no recipients are specified, the configured recipients
             #   will receive the failure email.
-            def send_failure_email(cfg = config, recipients = nil)
-                case cfg
-                when Exception
-                    # Called directly from #on_failure
-                    cfg = config
-                when Hash
-                else
-                    recipients = cfg
-                    cfg = config
+            def send_failure_email(job_run, ex)
+                if job_run.parent.nil?
+                    msg = create_failure_email()
+                    if recipients
+                        # Override default recipients
+                        msg.to = recipients
+                        msg.cc = nil
+                    end
+                    msg.deliver!
+                    log.detail "Failure email sent to #{recipient_count(msg)} recipients"
                 end
-                msg = create_failure_email(cfg)
-                if recipients
-                    # Override default recipients
-                    msg.to = recipients
-                    msg.cc = nil
-                end
-                msg.deliver!
-                log.detail "Failure email sent to #{recipient_count(msg)} recipients"
             end
 
 
