@@ -136,15 +136,15 @@ class BatchKit
             # Defines a handler to be invoked if the job encounters an unhandled
             # exception.
             def on_failure(mthd = nil, &blk)
-                Events.subscribe(self, 'job_run.failure'){ |obj, jr, ex| obj.send(mthd, ex) } if mthd
-                Events.subscribe(self, 'job_run.failure'){ |obj, jr, ex| obj.instance_exec(ex, &blk) } if blk
+                Events.subscribe(self, 'job_run.failure'){ |obj, jr, ex| obj.send(mthd, jr, ex) } if mthd
+                Events.subscribe(self, 'job_run.failure'){ |obj, jr, ex| obj.instance_exec(jr, ex, &blk) } if blk
             end
 
 
             # Defines a handler to be invoked if the job ends successfully.
             def on_success(mthd = nil, &blk)
-                Events.subscribe(self, 'job_run.success'){ |obj, jr| obj.send(mthd) } if mthd
-                Events.subscribe(self, 'job_run.success'){ |obj, jr| obj.instance_exec(&blk) } if blk
+                Events.subscribe(self, 'job_run.success'){ |obj, jr| obj.send(mthd, jr) } if mthd
+                Events.subscribe(self, 'job_run.success'){ |obj, jr| obj.instance_exec(jr, &blk) } if blk
             end
 
 
@@ -158,8 +158,8 @@ class BatchKit
             #   represents the completing job run.
             #
             def on_completion(mthd = nil, &blk)
-                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.send(mthd) } if mthd
-                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.instance_exec(&blk) } if blk
+                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.send(jr, ok, mthd) } if mthd
+                Events.subscribe(self, 'job_run.post-execute'){ |obj, jr, ok| obj.instance_exec(jr, ok, &blk) } if blk
             end
 
         end
