@@ -52,8 +52,8 @@ class BatchKit
             # @param options [Hash] An options hash.
             # @option options [Boolean] :raise_on_error If true (default), an
             #   exception is raised if the return code is not a success code.
-            # @option options [Fixnum, Array<Fixnum>] The return code(s) that the
-            #   process can return if successful (default 0).
+            # @option options [Fixnum, Array<Fixnum>] :success_code The return
+            #   code(s) that the process can return if successful (default 0).
             # @option options [Boolean] :show_duration If true (default), logs the
             #   duration taken by the process.
             # @option options [Logger] :logger The logger to use; defaults to using
@@ -66,7 +66,7 @@ class BatchKit
                 raise_on_error = options.fetch(:raise_on_error, true)
                 show_duration = options.fetch(:show_duration, true)
                 success_code = options.fetch(:success_code, 0)
-                log = options.fetch(:logger, BatchKit::LogManager.logger(exe))
+                log = options.fetch(:logger, BatchKit::LogManager.logger(File.nameonly(exe)))
                 log_level = options.fetch(:log_level, :detail)
                 unless block_given? || options[:callback]
                     options = options.dup
