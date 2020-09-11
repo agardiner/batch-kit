@@ -86,18 +86,20 @@ class BatchKit
                 job = self.where(job_class: job_def.job_class.name,
                                  job_host: job_def.computer).first
                 job_file = IO.read(job_def.file)
-                ok, md5 = MD5.check('JOB', "//#{job_def.computer}/#{job_def.file}", job_file)
-                md5.save unless ok
-                if job
-                    # Existing job
-                    unless ok == job.job_file_md5_id
-                        job.update(job_name: job_def.name, job_method: job_def.method_name,
-                                   job_desc: job_def.description, job_file: job_def.file,
-                                   job_version: md5.object_version, md5: md5)
+                self.dataset.db.transaction do
+                    ok, md5 = MD5.check('JOB', "//#{job_def.computer}/#{job_def.file}", job_file)
+                    md5.save unless ok
+                    if job
+                        # Existing job
+                        unless ok == job.job_file_md5_id
+                            job.update(job_name: job_def.name, job_method: job_def.method_name,
+                                       job_desc: job_def.description, job_file: job_def.file,
+                                       job_version: md5.object_version, md5: md5)
+                        end
+                    else
+                        # New job
+                        job = self.new(job_def, md5).save
                     end
-                else
-                    # New job
-                    job = self.new(job_def, md5).save
                 end
                 job_def.job_id = job.job_id
                 job_def.job_version = job.job_version
