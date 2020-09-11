@@ -14,6 +14,11 @@ class BatchKit
 
             include Html
 
+            # Get/set a subject prefix string to appear at the start of the subject
+            # line.
+            attr_accessor :subject_prefix
+
+
             # Creates a new Mail message object that can be used to create and
             # send an email.
             #
@@ -76,7 +81,15 @@ class BatchKit
                 body << "<div class='separator'></div>"
                 body << "<p>"
                 body << "<h3>Job Execution Details</h3>"
-                create_html_table(body, self.job_run.task_runs,
+                runs = []
+                job_run.walk do |run, depth|
+                    runs << BatchKit::Config.new({
+                        name: ('&nbsp;' * depth * 2) + run.name, instance: run.instance,
+                        start_time: run.start_time, end_time: run.end_time, elapsed: run.elapsed,
+                        status: run.status
+                    })
+                end
+                create_html_table(body, runs,
                                   {name: :name, label: 'Task'},
                                   {name: :instance, show: has_instances},
                                   {name: :start_time, label: 'Start Time'},
@@ -129,7 +142,7 @@ class BatchKit
                 end
                 msg.to = mail_list(cfg[:failure_email_to])
                 msg.cc = mail_list(cfg[:failure_email_cc])
-                msg.subject = "#{self.job.name} job on #{self.job.computer} Failed!"
+                msg.subject = "#{self.subject_prefix} #{self.job.name} job on #{self.job.computer} Failed!".strip
                 msg.add_file(self.log.log_file) if self.log.log_file
                 msg
             end
