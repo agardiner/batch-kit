@@ -30,7 +30,8 @@ class BatchKit
                 unless ok
                     # TODO: Find a better way to update schema for table changes;
                     #       This method throws away all history
-                    schema.drop_tables
+                    #schema.drop_tables
+                    Console.puts "Schema definition has changed!"
                     schema.create_tables
                     md5.save
                 end
@@ -304,7 +305,12 @@ class BatchKit
 
 
             def initialize(job_run)
-                super(job_id: job_run.job_id, job_instance: job_run.instance,
+                parent_jr = case job_run.parent
+                            when BatchKit::Job::Run then job_run.parent.job_run_id
+                            when BatchKit::Task::Run then job_run.parent.job_run.job_run_id
+                            end
+                super(parent_job_run: parent_jr,
+                      job_id: job_run.job_id, job_instance: job_run.instance,
                       job_version: job_run.job_version, job_run_by: job_run.run_by,
                       job_cmd_line: job_run.cmd_line, job_start_time: job_run.start_time,
                       job_status: job_run.status.to_s.upcase, job_pid: job_run.pid)
@@ -408,7 +414,8 @@ class BatchKit
 
 
             def initialize(task_run)
-                super(task_id: task_run.task_id, job_run: task_run.job_run.job_run_id,
+                super(parent_task_run: task_run.parent.is_a?(BatchKit::Task::Run) ? task_run.parent.task_run_id : nil,
+                      task_id: task_run.task_id, job_run: task_run.job_run.job_run_id,
                       task_instance: task_run.instance, task_start_time: task_run.start_time,
                       task_status: task_run.status.to_s.upcase)
             end
@@ -485,7 +492,8 @@ class BatchKit
             unrestrict_primary_key
 
 
-            def self.lock?(job_run, lock_name, lock_timeout, lock_holder = nil)
+            def self.lock?(runnable, lock_name, lock_timeout, lock_holder = nil)
+                job_run = runnable.is_a?(BatchKit::Job::Run) ? runnable : runnable.job_run
                 lock_expires_at = nil
                 self.dataset.db.transaction do
                     lock_rec = self.where(lock_name: lock_name).first
@@ -514,7 +522,8 @@ class BatchKit
             end
 
 
-            def self.unlock?(job_run, lock_name)
+            def self.unlock?(runnable, lock_name)
+                job_run = runnable.is_a?(BatchKit::Job::Run) ? runnable : runnable.job_run
                 unlocked = false
                 if job_run.persist?
                     self.where(lock_name: lock_name,

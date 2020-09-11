@@ -92,6 +92,7 @@ class BatchKit
                 if purge_job_runs.count > 0
                     log.detail "Purging job and task run records for #{purge_job_runs.count} job runs"
                     purge_job_runs.each_slice(1000).each do |purge_ids|
+                        JobRun.where(parent_job_run: purge_ids).update(parent_job_run: nil)
                         JobRunArg.where(job_run: purge_ids).delete
                         TaskRun.where(job_run: purge_ids).delete
                         JobRun.where(job_run: purge_ids).delete

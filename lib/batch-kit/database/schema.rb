@@ -128,6 +128,7 @@ class BatchKit
                 # Job run table, holds details of a single execution of a job
                 @conn.create_table?(:batchkit_job_run) do
                     primary_key :job_run
+                    foreign_key :parent_job_run, :batchkit_job_run, null: true
                     foreign_key :job_id, :batchkit_job, null: false
                     String :job_instance, size: 80, null: true
                     Fixnum :job_version, null: false
@@ -176,6 +177,7 @@ class BatchKit
                 # Task run table, holds details of a single execution of a task
                 @conn.create_table?(:batchkit_task_run) do
                     primary_key :task_run
+                    foreign_key :parent_task_run, :batchkit_task_run, null: true
                     foreign_key :task_id, :batchkit_task, null: false
                     foreign_key :job_run, :batchkit_job_run, null: false
                     String :task_instance, size: 80, null: true
