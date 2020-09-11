@@ -60,8 +60,11 @@ class BatchKit
         #   run of this process is likely to take, but no longer.
         # @!attribute :lock_wait_timeout [Fixnum] Number of seconds before
         #   this process will give up waiting for a lock to become available.
+        # @!attribute :checkpoint_window [Fixnum] Number of seconds in the
+        #   checkpoint window - the timeframe during which to skip running
+        #   this job/task if it has already completed successfully.
         add_properties(:name, :description, :instance, :runs,
-            :lock_name, :lock_timeout, :lock_wait_timeout
+            :lock_name, :lock_timeout, :lock_wait_timeout, :checkpoint_window
         )
 
 

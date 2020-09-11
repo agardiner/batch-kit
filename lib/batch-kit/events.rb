@@ -55,11 +55,13 @@ class BatchKit
         class Token
 
             attr_reader :value, :result
+            attr_accessor :reason
             
 
-            def initialize(value, result=value)
+            def initialize(value, result=value, reason=nil)
                 @value = value
                 @result = result
+                @reason = reason
             end
 
 

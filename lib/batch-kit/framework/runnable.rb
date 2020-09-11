@@ -62,6 +62,11 @@ class BatchKit
         attr_reader :lock_timeout
         # Number of seconds to wait for the lock to be released before giving up
         attr_reader :lock_wait_timeout
+        # Checkpoint time window in seconds.
+        # If checkpoint support is available and this property is set, and the
+        # same job/task has been run previously within this number of seconds,
+        # this run will be skipped.
+        attr_reader :checkpoint_window
 
 
 
@@ -83,6 +88,7 @@ class BatchKit
                 when Numeric then definition.lock_wait_timeout
                 when String then eval_property_expr(definition.lock_wait_timeout, obj, run_args, :to_i)
             end
+            @checkpoint_window = eval_property_expr(definition.checkpoint_window, obj, run_args, :to_i)
             Events.publish(self, event_name('initialized'))
         end
 
@@ -117,14 +123,11 @@ class BatchKit
         # @return [Boolean] True if the process should proceed, or false if it
         #   should be skipped.
         def pre_execute(process_obj, *args)
-            if Events.has_subscribers?(process_obj, event_name('pre-execute'))
-                run = Events::Token::SKIP_RUN != Events.publish(process_obj, event_name('pre-execute'), self, *args)
-            else
-                run = true
-            end
+            res = Events.publish(process_obj, event_name('pre-execute'), self, *args)
+            run = Events::Token::SKIP_RUN != res
             unless run
-                @status = :skipped unless run
-                Events.publish(process_obj, event_name('skipped'), self, *args)
+                @status = :skipped
+                Events.publish(process_obj, event_name('skipped'), self, res.reason, *args)
             end
             run
         end

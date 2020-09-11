@@ -345,6 +345,16 @@ class BatchKit
             end
 
 
+            Events.subscribe(nil, 'job_run.pre-execute') do |job_obj, job_run, *args|
+                if job_run.checkpoint_window
+                    last_completed = JobRun.where(job_id: job_run.job_id,
+                                                  job_instance: job_run.instance,
+                                                  job_status: 'COMPLETED').max(:job_end_time)
+                    if last_completed && (Time.now - last_completed) <= job_run.checkpoint_window
+                        Events::Token.new(:skip_run, nil, 'a run has already completed successfully within the checkpoint window')
+                    end
+                end
+            end
             Events.subscribe(nil, 'job_run.execute', position: 0) do |job_obj, job_run, *args|
                 JobRun.new(job_run).job_start(job_run) if job_run.persist?
             end
@@ -447,7 +457,16 @@ class BatchKit
             end
 
 
-
+            Events.subscribe(nil, 'task_run.pre-execute') do |job_obj, task_run, *args|
+                if task_run.checkpoint_window
+                    last_completed = TaskRun.where(task_id: task_run.task_id,
+                                                   task_instance: task_run.instance,
+                                                   task_status: 'COMPLETED').max(:task_end_time)
+                    if last_completed && (Time.now - last_completed) <= task_run.checkpoint_window
+                        Events::Token.new(:skip_run, nil, 'a run has already completed successfully within the checkpoint window')
+                    end
+                end
+            end
             Events.subscribe(nil, 'task_run.execute', position: 0) do |job_obj, task_run, *args|
                 TaskRun.new(task_run).task_start(task_run) if task_run.persist?
             end
