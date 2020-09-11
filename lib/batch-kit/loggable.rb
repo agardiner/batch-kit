@@ -20,17 +20,18 @@ class BatchKit
                 if run.object.respond_to(:config) && run.object.respond_to(:log)
                     cfg = run.object.config
                     log = run.object.log
-                    if cfg.has_key?(:log_level) || cfg.has_key?(:log_file)
-                        if cfg[:log_level]
-                            log.level = cfg[:log_level]
-                            log.config "Log level set to #{cfg[:log_level].upcase}"
-                        end
-                        if run.parent.nil? && cfg.has_key?(:log_file)
-                            log.config "Logging output to: #{cfg[:log_file]}" if cfg[:log_file]
-                            FileUtils.mkdir_p(File.dirname(cfg[:log_file]))
-                            # Set log file at root logger level
-                            LogManager.logger.log_file = cfg[:log_file]
-                        end
+                    if cfg[:log_level]
+                        log.level = cfg[:log_level]
+                        log.config "Log level set to #{cfg[:log_level].upcase}"
+                    end
+                    if run.parent.nil? && cfg[:log_dir]
+                        cfg.log_file = "#{cfg[:log_dir]}/#{File.nameonly(run.definition.file)}#{
+                            run.instance ? '_' + run.instance.gsub(/[:\/\\]/, '_').gsub(/__+/, '_') : ''}.log"
+                        FileUtils.archive(cfg.log_file)
+                        log.config "Logging output to: #{cfg.log_file}"
+                        FileUtils.mkdir_p(File.dirname(cfg.log_file))
+                        # Set log file at root logger level
+                        LogManager.logger.log_file = cfg.log_file
                     end
                 end
             end
