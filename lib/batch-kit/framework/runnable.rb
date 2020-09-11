@@ -37,6 +37,8 @@ class BatchKit
         # The parent Runnable (if any) on the current thread that triggered
         #   this run.
         attr_reader :parent
+        # The child Runnables triggered by this Runnable on the current thread
+        attr_reader :children
         # Current status of this process.
         # One of the following states:
         #   :initialized
@@ -69,6 +71,8 @@ class BatchKit
             @object = obj
             @instance = eval_property_expr(definition.instance, obj, run_args)
             @parent = (Thread.current[:batch_kit_stack] || []).last
+            @children = []
+            @parent.children.push(self) if @parent
             @status = :initialized
             @lock_name = eval_property_expr(definition.lock_name, obj, run_args)
             @lock_timeout = case definition.lock_timeout
@@ -198,6 +202,15 @@ class BatchKit
         def post_execute(process_obj, success)
             Events.publish(process_obj, event_name('post-execute'), self, success)
             @object = nil
+        end
+
+
+        # Traverse descendant Runnable's launched by this Runnable.
+        def walk(depth = 0, &blk)
+            @children.each do |r|
+                blk.call(r, depth)
+                r.walk(depth + 1, &blk)
+            end
         end
 
 
