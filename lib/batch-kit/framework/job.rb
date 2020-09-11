@@ -57,6 +57,13 @@ class BatchKit
         end
 
 
+        # Class method for marking this job class as one that should not be tracked
+        # in the database.
+        def self.do_not_track
+            self.job_definition.do_not_track = true
+        end
+
+
         # Instantiates and executes a job, using the supplied arguments +args+.
         #
         # @param args [Array<String>] an array containin§g the command-line to
