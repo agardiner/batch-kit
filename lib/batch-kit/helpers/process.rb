@@ -22,19 +22,23 @@ class BatchKit
             # @param options [Hash] An options hash.
             # @option options [Proc] :callback If specified, the supplied Proc will
             #   be invoked for each line of output produced by the process.
-            # @option options [Proc] :input If specified, the supplied Proc will
-            #   be invoked for each line of output produced by the process. It will
-            #   be passed the pipe on which input for the process can be written,
-            #   plus the last line of output produced. This is useful in cases where
-            #   it is necessary to communicate with the child process via its STDIN.
+            # @option options [String|Proc] :input A String or Proc to use for input.
+            #   If a String is supplied, the input will be written to the process's
+            #   STDIN immediately.
+            #   If a Proc is specified, the supplied Proc will  be invoked for each
+            #   line of output produced by the process. It will be passed the pipe on
+            #   which input for the process can be written, plus the last line of
+            #   output produced. This is useful in cases where it is necessary to
+            #   communicate with the child process via its STDIN.
             # @return [Fixnum] The exit status code from the external process.
             def popen(cmd_line, options = {}, &block)
                 callback = options[:callback]
                 input = options[:input]
                 IO.popen(cmd_line, input ? 'r+' : 'r') do |pipe|
+                    pipe.puts(input) if input.is_a?(String)
                     while !pipe.eof?
                         line = pipe.gets.chomp
-                        input.call(pipe, line) if input
+                        input.call(pipe, line) if input.is_a?(Proc)
                         callback.call(line) if callback
                         block.call(line) if block_given?
                     end
