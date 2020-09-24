@@ -45,8 +45,13 @@ class BatchKit
             end
             %w{job_run task_run}.each do |runnable|
                 Events.subscribe(Loggable, "#{runnable}.post-execute") do |job_obj, run, ok|
+                    case
+                    when ok && run.exit_code == 0 then 'successfully'
+                    when ok then "with exit code #{run.exit_code}"
+                    else "with errors (exit code #{run.exit_code})"
+                    end
                     job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
-                        ok ? 'successfully' : 'with errors'} in #{'%.3f' % run.elapsed} seconds"
+                        status} in #{'%.3f' % run.elapsed} seconds"
                 end
                 Events.subscribe(Loggable, "#{runnable}.skipped") do |job_obj, run, reason|
                     if reason
