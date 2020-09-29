@@ -14,8 +14,9 @@ class BatchKit
 
 
         def log_exception(ex)
-            unless (oid = ex.object_id) == @last_oid
-                @last_oid = oid
+            @@last_oid ||= nil
+            unless (oid = ex.object_id) == @@last_oid
+                @@last_oid = oid
                 # Strip out framework methods from backtrace
                 locs = ex.backtrace.reject{ |f| f =~ /lib.batch-kit.framework|RubyMethod/ }
                 max_mthd = 0
