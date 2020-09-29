@@ -40,6 +40,9 @@ class BatchKit
                 if args.delete('--do-not-track')
                     self.job_definition.do_not_track = true
                 end
+                if args.delete('--no-checkpoints')
+                    self.job_definition.no_checkpoints = true
+                end
                 if !@shell && args.include?('--shell')
                     args.delete_if{ |arg| arg == '--shell' }
                     shell(args)

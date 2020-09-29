@@ -19,6 +19,11 @@ class BatchKit
             # @!attribute :do_not_track [Boolean] By default, job executions may be
             #   recorded (if a persistence layer is available). This attribute can be
             #   used by jobs to indicate that runs of this job should not be recorded.
+            # @!attribute :no_checkpoints [Boolean] By default, job and task executions
+            #   that define a checkpoint window will not be run if the last successful
+            #   execution occurred within the checkpoint window. If this attribute is
+            #   set to true, any checkpoint windows are ignored, and jobs/tasks are
+            #   always run.
             # @!attribute :tasks [Hash<Task::Definition>] A hash of task method names to
             #   Task::Definition objects capturing details of each task that is defined
             #   for this Job::Definition.
@@ -27,7 +32,7 @@ class BatchKit
             # @!attribute :job_version [Fixnum] A version number for the job.
             add_properties(
                 # Properties from job/task declarations
-                :job_class, :method_name, :computer, :file, :do_not_track, :tasks,
+                :job_class, :method_name, :computer, :file, :do_not_track, :no_checkpoints, :tasks,
                 # Properties provided by persistence layer
                 :job_id, :job_version
             )

@@ -88,7 +88,23 @@ class BatchKit
                 when Numeric then definition.lock_wait_timeout
                 when String then eval_property_expr(definition.lock_wait_timeout, obj, run_args, :to_i)
             end
-            @checkpoint_window = eval_property_expr(definition.checkpoint_window, obj, run_args, :to_i)
+            case definition.checkpoint_window
+            when Numeric
+                @checkpoint_window = definition.checkpoint_window
+            when String
+                case eval_property_expr(definition.checkpoint_window, obj, run_args)
+                when /^(\d+)$/, /^(\d+)\s*s(ec(ond)?s?)?$/i
+                    @checkpoint_window = $1.to_i
+                when /^(\d+)\s*m(in(ute)?s?)?$/i
+                    @checkpoint_window = $1.to_i * 60
+                when /^(\d+)\s*h(ours?)?$/i
+                    @checkpoint_window = $1.to_i * 3600
+                when /^(\d+)\s*d(ays?)?$/i
+                    @checkpoint_window = $1.to_i * 24 * 3600
+                else
+                    raise ArgumentError, "checkpoint_window must be of the form: 'nn [second(s)|minute(s)|hour(s)|day(s)]'"
+                end
+            end
             Events.publish(self, event_name('initialized'))
         end
 
