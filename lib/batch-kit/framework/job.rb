@@ -156,12 +156,7 @@ class BatchKit
         Events.subscribe(self, ['sequence_run.failure',
                                 'job_run.failure',
                                 'task_run.failure']) do |obj, run, ex|
-            unless (oid = ex.object_id) == @last_id
-                @last_id = oid
-                # Strip out framework methods from backtrace
-                ex.backtrace.reject!{ |f| f =~ /lib.batch-kit.framework|RubyMethod/ }
-                obj.log.error "#{ex} at #{ex.backtrace.join("\n")}"
-            end
+            obj.log_exception(ex)
         end
 
     end

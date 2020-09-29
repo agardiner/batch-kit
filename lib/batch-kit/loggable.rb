@@ -13,6 +13,27 @@ class BatchKit
         end
 
 
+        def log_exception(ex)
+            unless (oid = ex.object_id) == @last_oid
+                @last_oid = oid
+                # Strip out framework methods from backtrace
+                locs = ex.backtrace.reject{ |f| f =~ /lib.batch-kit.framework|RubyMethod/ }
+                max_mthd = 0
+                locs.map! do |line|
+                    if line =~ /(.+?):(\d+)(?::in `(.+)')/
+                        mthd, file, line = $3, $1, $2
+                    elsif line =~ /([^(]+)\((.+?):(\d+)\)/
+                        mthd, file, line = $1, $2, $3
+                    end
+                    max_mthd = mthd.to_s.length if mthd.to_s.length > max_mthd
+                    [mthd, file, line]
+                end
+                locs.map!{ |mthd, file, line| "%#{max_mthd}s at %s:%i" % [mthd, file, line] }
+                log.error "#{ex.class.name}: #{ex.message}\n|  #{locs.join("\n|  ")}"
+            end
+        end
+
+
         if defined?(BatchKit::Events)
 
             # Subscribe to batch-kit lifecycle events that should be logged

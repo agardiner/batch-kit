@@ -161,6 +161,13 @@ class BatchKit
                                 count += 1
                                 res = res.combine(r)
                             rescue StandardError => ex
+                                if source.is_a?(Loggable)
+                                    source.log.error "Unhandled exception in '#{event}' listener for #{source}"
+                                    source.log_exception(ex)
+                                elsif source.respond_to?(:log)
+                                    source.log.error "Unhandled exception in '#{event}' listener for #{source}"
+                                    source.log.error ex
+                                end
                                 if sub.raise_on_error
                                     raise
                                 else
