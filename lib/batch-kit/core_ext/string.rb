@@ -15,6 +15,23 @@ class BatchKit
         end
 
 
+        # Convert a wildcard or regex string to a Regexp object
+        # Useful for converting patterns supplied by a user into a Regexp object
+        # to be used for comparisons. If a user supplies simple wildcards, these
+        # are converted to Regexp equivalents (i.e. * -> .* and ? -> .). If 
+        # commas are present, this is converted to an alternation regex.
+        # If other punctuation is used, the pattern is assumed to be a regular
+        # expression, and is converted as-is.
+        def pattern_to_regex(regexp_options=nil)
+            if self =~ /[\^$!\\+()]/
+                Regexp.new("^#{self}$", regexp_options)
+            else
+                pat = self.split(',').map{ |pat| pat.gsub('*', '.*').gsub('?', '.') }.join('|')
+                Regexp.new("^(#{pat})$", regexp_options)
+            end
+        end
+
+
         # Wraps the text in +self+ to lines no longer than +width+.
         #
         # The algorithm uses the following variables:
@@ -84,5 +101,5 @@ end
 
 
 String.class_eval do
-   include BatchKit::StringExtensions
+     include BatchKit::StringExtensions
 end
