@@ -15,6 +15,13 @@ class BatchKit
 
         class << self
 
+
+            # All active resources acquired via any ResourceHelper object.
+            def resources
+                @resources ||= Set.new
+            end
+
+
             # Returns an unbound method object that represents the method that
             # should be called to dispose of +rsrc+.
             def disposal_method(rsrc)
@@ -60,6 +67,9 @@ class BatchKit
                     raise ArgumentError, "No method named '#{disp_mthd}' is defined on #{rsrc_cls}"
                 end
 
+                # Define a __dispose_resource__ method on the resource class
+                rsc_cls.class_eval{ define_method(:__dispose_resource__) { self.send(disp_mthd) } }
+
                 # Define the helper method on the ResourceHelper module. This is
                 # necessary (as opposed to just calling the block from the
                 # acquisition methd) in order to ensure that self etc are set
@@ -71,6 +81,21 @@ class BatchKit
                 add_aspect(rsrc_cls, helper_mthd, disp_mthd)
                 Events.publish(self, 'resource.registered', rsrc_cls, helper_mthd)
             end
+
+
+            # Disposes of all remaining active resources
+            def cleanup_all_resources
+                if @resources && @resources.size > 0
+                    @resources.clone.reverse_each do |rsrc|
+                        rsrc.__dispose_resource__
+                    end
+                    @resources = nil
+                end
+            end
+
+
+            # Ensure that all acquired resources are disposed of at exit
+            at_exit{ ResourceManager.cleanup_all_resources }
 
 
             private
@@ -89,25 +114,33 @@ class BatchKit
                 mthd = ResourceHelper.instance_method(helper_mthd)
                 ResourceHelper.class_eval do
                     define_method helper_mthd do |*args|
-                        if Events.publish(rsrc_cls, 'resource.pre_acquire', *args)
-                            result = nil
+                        rsrc_helper = self
+                        if Events.publish(rsrc_helper, 'resource.pre_acquire', rsrc_cls, *args)
+                            rsrc = nil
                             begin
-                                result = mthd.bind(self).call(*args)
-                                unless rsrc_cls === result
+                                rsrc = mthd.bind(self).call(*args)
+                                unless rsrc_cls === rsrc
                                     raise ArgumentError, "Returned resource is of type #{
-                                        result.class.name}, not #{rsrc_cls}"
+                                        rsrc.class.name}, not #{rsrc_cls}"
                                 end
                                 # Override disposal method on this acquired instance
                                 # to call #dispose_resource instead
-                                defn = self
-                                result.define_singleton_method(disp_mthd) do
-                                    defn.dispose_resource(self)
+                                rsrc.define_singleton_method(disp_mthd) do
+                                    disposition = Events.publish(rsrc_helper, 'resource.pre-disposal', self)
+                                    unless Events::Token::CANCEL == disposition
+                                        begin
+                                            ResourceManager.disposal_method(self).bind(self).call
+                                            Events.publish(rsrc_helper, 'resource.disposed', self)
+                                        rescue Exception => ex
+                                            Events.publish(rsrc_helper, 'resource.disposal-failed', self, ex)
+                                            raise
+                                        end
+                                    end
                                 end
-                                add_resource(result)
-                                Events.publish(rsrc_cls, 'resource.acquired', result)
-                                result
+                                Events.publish(rsrc_helper, 'resource.acquired', rsrc)
+                                rsrc
                             rescue Exception => ex
-                                Events.publish(rsrc_cls, 'resource.acquisition_failed', ex)
+                                Events.publish(rsrc_helper, 'resource.acquisition_failed', rsrc_cls, ex)
                                 raise
                             end
                         end
@@ -115,6 +148,13 @@ class BatchKit
                 end
             end
 
+            Events.subscribe(nil, 'resource.acquired') do |_, rsrc|
+                ResourceManager.resources << rsrc
+            end
+            Events.subscribe(nil, 'resource.disposed') do |_, rsrc|
+                ResourceManager.resources.delete(rsrc)
+            end
+            
         end
 
     end
@@ -134,40 +174,17 @@ class BatchKit
     #   done with them by calling the #cleanup_resources.
     module ResourceHelper
 
-        # Register a resource for later clean-up
-        def add_resource(rsrc)
-            # Ensure we know how to dispose of this resource
-            ResourceManager.disposal_method(rsrc)
-            (@__resources__ ||= Set.new) << rsrc
+        # Returns the open resources acquired via this object.
+        def resources
+            @__resources__ ||= Set.new
         end
-
-
-        # Dispose of a resource.
-        #
-        # This method will be called automatically whenever a resource is closed
-        # manually (via a call to the resources normal disposal method, e.g.
-        # #close), or when #cleanup_resources is used to tidy-up all managed
-        # resources.
-        def dispose_resource(rsrc)
-            disp_mthd = ResourceManager.disposal_method(rsrc)
-            @__resources__.delete(rsrc)
-            if Events.publish(rsrc, 'resource.pre-disposal')
-                begin
-                    disp_mthd.bind(rsrc).call
-                    Events.publish(rsrc, 'resource.disposed')
-                rescue Exception => ex
-                    Events.publish(rsrc, 'resource.disposal-failed', ex)
-                    raise
-                end
-            end
-        end
-
+        
 
         # Dispose of all resources managed by this object.
         def cleanup_resources
             if @__resources__
                 @__resources__.clone.reverse_each do |rsrc|
-                    dispose_resource(rsrc)
+                    rsrc.__dispose_resource__
                 end
                 @__resources__ = nil
             end
@@ -177,6 +194,12 @@ class BatchKit
         # Add automatic disposal of resources on completion of job if included
         # into a job.
         def self.included(cls)
+            Events.subscribe(cls, 'resource.acquired') do |rsrc_helper, rsrc|
+                rsrc_helper.resources << rsrc
+            end
+            Events.subscribe(cls, 'resource.disposed') do |rsrc_helper, rsrc|
+                rsrc_helper.resources.delete(rsrc)
+            end
             if (defined?(BatchKit::Job) && BatchKit::Job == cls) ||
                 (defined?(BatchKit::ActsAsJob) && cls.include?(BatchKit::ActsAsJob))
                 Events.subscribe(BatchKit::Job::Run, 'post-execute') do |run, job_obj, ok|

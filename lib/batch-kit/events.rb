@@ -84,9 +84,11 @@ class BatchKit
             end
 
 
+            # Token used to signal an action should be cancelled
+            CANCEL = Token.new(:cancel)
             # Token used to signal a Runnable should not be run
             SKIP_RUN = Token.new(:skip_run)
-            # Toekn used to indicate a failure event should suppress the exception
+            # Token used to indicate a failure event should suppress the exception
             SUPPRESS_EXCEPTION = Token.new(:suppress_exception)
 
         end
