@@ -21,15 +21,23 @@ class BatchKit
                 locs = ex.backtrace.reject{ |f| f =~ /lib.batch-kit.framework|RubyMethod/ }
                 max_mthd = 0
                 locs.map! do |line|
-                    if line =~ /(.+?):(\d+)(?::in `(.+)')/
+                    case line
+                    when /([^(]+)\(Native Method/
+                        mthd, file, line = $1, '(Native Method)', nil
+                    when /(.+?):(\d+)(?::in `(.+)')/
                         mthd, file, line = $3, $1, $2
-                    elsif line =~ /([^(]+)\((.+?):(\d+)\)/
+                    when /([^(]+)\((.+?):(\d+)\)/
                         mthd, file, line = $1, $2, $3
+                    else
+                        mthd, file, line = line, '???', nil
                     end
                     max_mthd = mthd.to_s.length if mthd.to_s.length > max_mthd
                     [mthd, file, line]
                 end
-                locs.map!{ |mthd, file, line| "%#{max_mthd}s at %s:%i" % [mthd, file, line] }
+                locs.map!{ |mthd, file, line| line ?
+                    "%#{max_mthd}s at %s:%i" % [mthd, file, line] :
+                    "%#{max_mthd}s at %s" % [mthd, file]
+                }
                 log.error "#{ex.class.name}: #{ex.message}\n|  #{locs.join("\n|  ")}"
             end
         end
