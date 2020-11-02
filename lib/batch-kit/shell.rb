@@ -17,9 +17,43 @@ class BatchKit
         # of utilities, by filling in some of the boiler-plate.
         module Commands
 
+            class Command
+
+                attr_reader :name, :description, :arguments
+
+                def initialize(name, class_name, desc, args, &blk)
+                    @name = name
+                    @description = desc
+                    @class = class_name
+                    @arguments = args
+                    @processor = blk
+                end
+
+
+                def get
+                    Object.const_get(@class)
+                end
+
+
+                def run(args)
+                    if @processor
+                        @processor.call(self.get, args)
+                    else
+                        self.get.run_once(args, false)
+                    end
+                end
+
+            end
+            
+
             module ClassMethods
 
                 include BatchKit::Loggable
+
+
+                def history(file_name)
+                    @history_path = File.join(Dir.home, file_name)
+                end
 
 
                 def registered_commands
@@ -27,39 +61,28 @@ class BatchKit
                 end
 
 
-                def registered_shortcuts
-                    @registered_shortcuts ||= {}
+                def desc(desc)
+                    @desc = desc
                 end
-                
 
-                # Set the base path to which command relative paths will be
-                # appended. Can be called multiple times; command paths are
-                # evaluated relative to this base path at the time they are
-                # defined.
-                def base_path(base_path)
-                    @base_path = base_path
+
+                def arguments(args)
+                    @arguments = args
                 end
 
 
                 # Register a new command, invoked using +name+.
-                def command(name, path, cls)
-                    registered_commands[name] = {path: File.join(@base_path, path), class: cls}
-                    log.detail "Registered command #{name}"
-                end
-
-
-                # Register a new shortcut snipper, invoked using +name+.
-                def shortcut(name, &blk)
-                    raise ArgumentError, "A block must be supplied" unless block_given?
-                    registered_shortcuts[name] = blk
-                    log.detail "Registerd shortcut #{name}"
+                def command(name, cls, &blk)
+                    registered_commands[name] = Command.new(name, cls, @desc, @arguments, &blk)
+                    @desc = nil
+                    @arguments = nil
                 end
 
 
                 # Invoke a new shell instance supporting the defined commands
                 # and shortcuts.
                 def run
-                    BatchKit::Shell.new(registered_commands, registered_shortcuts).execute
+                    BatchKit::Shell.new(registered_commands, @history_path).execute
                 end
 
             end
@@ -75,67 +98,112 @@ class BatchKit
         include BatchKit::Loggable
 
 
-        def initialize(commands, shortcuts)
+        def initialize(commands, history_path)
             @commands = commands
-            @shortcuts = shortcuts
+            @history_path = history_path
         end
 
 
         def execute
-            puts "Starting interactive shell... enter 'exit' to quit"
-            prompt = '> '
-            while true do
-                args = Readline.readline(prompt, true).strip
-                case args
-                when /^(exit|quit)/i
-                    break
-                when /^help(?:\s+(\w+))?$/
-                    if $1 && cmd_info = @commands[$1.intern]
-                        process_command($1, cmd_info, '--help')
-                    else
-                        puts "Available commands: #{(@commands.keys + @shortcuts.keys).join(', ')}"
+            if ARGV.size > 0
+                run_command(ARGV)
+            else
+                load_history
+                prompt = '> '
+                puts "Starting interactive shell... enter 'exit' to quit"
+                while true do
+                    begin
+                        input = Readline.readline(prompt, true).strip
+                        args = CSV.parse_line(input, col_sep: ' ')
+                        next if args.nil? || args.size == 0
+                        if args.first =~ /^(exit|quit)$/i
+                            break
+                        end
+                        Readline::HISTORY.push(input) if input != Readline::HISTORY[-1]
+                        if input =~ /^!\s*(.+)/
+                            out = `#{$1}`
+                            puts out
+                        else
+                            run_command(args)
+                        end
+                    rescue => ex
+                        log.error ex
                     end
-                when /^!\s*(.+)/
-                    out = `#{$1}`
-                    puts out
+                end
+                save_history
+            end
+        end
+
+
+        def run_command(args)
+            case args.first
+            when /^help$/i
+                if args[1] && cmd_info = @commands[args[1].intern]
+                    display_help(cmd_info)
                 else
-                    args = CSV.parse_line(args, col_sep: ' ')
-                    next if args.size == 0
-                    cmd = args.shift.intern
-                    if blk = @shortcuts[cmd]
-                        cmd, args = process_shortcut(cmd, args, blk)
+                    puts 'Available commands:'
+                    @commands.keys.sort.each do |key|
+                        puts "  #{key.to_s.ljust(25)} #{@commands[key].description}"
                     end
-                    next unless cmd
-                    if cmd_info = @commands[cmd]
-                        process_command(cmd, cmd_info, args)
+                end
+            else
+                cmd = args.shift.intern
+                if cmd_info = @commands[cmd]
+                    if cmd_info.arguments && args.size == 0
+                        display_usage(cmd_info)
                     else
-                        puts "ERROR: Unknown command '#{cmd}'"
+                        process_command(cmd, cmd_info, args)
                     end
+                else
+                    puts "ERROR: Unknown command '#{cmd}'"
                 end
             end
         end
 
 
+        def display_help(cmd_info)
+            puts "#{cmd_info.name}: #{cmd_info.description}"
+            puts
+            display_usage(cmd_info)
+        end
+
+
+        def display_usage(cmd_info)
+            puts "Usage: #{cmd_info.name} #{cmd_info.arguments.join(' ')}"
+        end
+
+
         def process_command(cmd, cmd_info, args)
             begin
-                require cmd_info[:path]
-                cls = Object.const_get(cmd_info[:class])
-                cls.run_once(args, false)
+                cmd_info.run(args)
             rescue SystemExit => e
                 puts "#{cmd} exited with status code #{e.status}"
             rescue Exception => ex
-                log.error ex
+                log_exception ex
             end
         end
 
 
-        def process_shortcut(cmd, args, blk)
-            begin
-                args = blk.call(args)
-                cmd = args.shift.intern
-                [cmd, args]
-            rescue Exception => ex
-                puts "#{cmd} failed: #{ex}"
+        def load_history
+            if @history_path && File.exists?(@history_path)
+                IO.foreach(@history_path){ |line| Readline::HISTORY.push(line.chomp) }
+            end
+            Readline.completion_proc = lambda{ |s|
+                line = Readline.line_buffer.split(' ')
+                if line.length == 1
+                    @commands.keys.grep(/#{Regexp.escape(s)}/)
+                end
+            }
+        end
+
+
+        def save_history
+            if @history_path
+                File.open(@history_path, 'w') do |f|
+                    history = Readline::HISTORY.to_a
+                    history = history.slice[-100..-1] if history.size > 100
+                    history.each{ |line| f.puts line }
+                end
             end
         end
 
