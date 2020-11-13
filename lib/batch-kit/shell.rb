@@ -106,7 +106,18 @@ class BatchKit
 
         def execute
             if ARGV.size > 0
-                run_command(ARGV)
+                cmd = ARGV.shift.intern
+                if cmd_info = @commands[cmd]
+                    if cmd_info.arguments && ARGV.size < cmd_info.arguments.size
+                        display_usage(cmd_info)
+                        exit 99
+                    else
+                        cmd_info.run(ARGV)
+                    end
+                else
+                    STDERR.puts "ERROR: Unknown command '#{cmd}'"
+                    exit 99
+                end
             else
                 load_history
                 prompt = '> '
@@ -119,7 +130,7 @@ class BatchKit
                         if args.first =~ /^(exit|quit)$/i
                             break
                         end
-                        Readline::HISTORY.push(input) if input != Readline::HISTORY[-1]
+                        Readline::HISTORY.push(input) if Readline::HISTORY.size == 0 || input != Readline::HISTORY[-1]
                         if input =~ /^!\s*(.+)/
                             out = `#{$1}`
                             puts out
@@ -149,10 +160,14 @@ class BatchKit
             else
                 cmd = args.shift.intern
                 if cmd_info = @commands[cmd]
-                    if cmd_info.arguments && args.size == 0
+                    if cmd_info.arguments && args.size < cmd_info.arguments.size
                         display_usage(cmd_info)
                     else
-                        process_command(cmd, cmd_info, args)
+                        begin
+                            cmd_info.run(args)
+                        rescue SystemExit => e
+                            puts "#{cmd} exited with status code #{e.status}"
+                        end
                     end
                 else
                     puts "ERROR: Unknown command '#{cmd}'"
@@ -170,17 +185,6 @@ class BatchKit
 
         def display_usage(cmd_info)
             puts "Usage: #{cmd_info.name} #{cmd_info.arguments.join(' ')}"
-        end
-
-
-        def process_command(cmd, cmd_info, args)
-            begin
-                cmd_info.run(args)
-            rescue SystemExit => e
-                puts "#{cmd} exited with status code #{e.status}"
-            rescue Exception => ex
-                log_exception ex
-            end
         end
 
 
