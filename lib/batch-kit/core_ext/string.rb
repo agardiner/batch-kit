@@ -9,7 +9,7 @@ class BatchKit
             # powerful as ActiveSupport#titleize, so we only define it if no
             # existing #titleize method is found on String.
             def titleize
-                self.gsub(/_/, ' ').gsub(/\b([a-z])/){ $1.upcase }
+                self.gsub(/_/, ' ').gsub(/(\w)([A-Z][a-z])/, '\1 \2').gsub(/\b([a-z])/){ $1.upcase }
             end
 
         end
