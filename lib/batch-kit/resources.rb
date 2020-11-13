@@ -68,7 +68,7 @@ class BatchKit
                 end
 
                 # Define a __dispose_resource__ method on the resource class
-                rsc_cls.class_eval{ define_method(:__dispose_resource__) { self.send(disp_mthd) } }
+                rsrc_cls.class_eval{ define_method(:__dispose_resource__) { self.send(disp_mthd) } }
 
                 # Define the helper method on the ResourceHelper module. This is
                 # necessary (as opposed to just calling the block from the

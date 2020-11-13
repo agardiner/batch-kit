@@ -47,7 +47,7 @@ class BatchKit
 
             # Subscribe to batch-kit lifecycle events that should be logged
             Events.subscribe(Runnable, 'job_run.initialized') do |run|
-                if run.object.respond_to(:config) && run.object.respond_to(:log)
+                if run.object.respond_to?(:config) && run.object.respond_to?(:log)
                     cfg = run.object.config
                     log = run.object.log
                     if cfg[:log_level]
@@ -81,7 +81,7 @@ class BatchKit
                     else "with errors (exit code #{run.exit_code})"
                     end
                     job_obj.log.info "#{run.class.name.split('::')[-2]} '#{run.label}' completed #{
-                        status} in #{'%.3f' % run.elapsed} seconds"
+                        run.status} in #{'%.3f' % run.elapsed} seconds"
                 end
                 Events.subscribe(Loggable, "#{runnable}.skipped") do |job_obj, run, reason|
                     if reason
