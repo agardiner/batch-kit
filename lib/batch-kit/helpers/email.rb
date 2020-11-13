@@ -27,14 +27,18 @@ class BatchKit
             #   config object defined by including BatchKit#Configurable.
             def create_email(cfg = nil)
                 cfg = config if cfg.nil? && self.respond_to?(:config)
-                Mail.defaults do
-                    delivery_method :smtp, cfg.smtp
-                end
+                if cfg.smtp?
+                    Mail.defaults do
+                        delivery_method :smtp, cfg.smtp
+                    end
 
-                Mail.new(to: mail_list(cfg.smtp[:to]),
-                         cc: mail_list(cfg.smtp[:cc]),
-                         from: cfg.smtp[:email_from] || "#{self.job.job_class.name}@#{self.job.computer}",
-                         reply_to: mail_list(cfg.smtp[:reply_to]))
+                    Mail.new(to: mail_list(cfg.smtp[:to]),
+                             cc: mail_list(cfg.smtp[:cc]),
+                             from: cfg.smtp[:email_from] || "#{self.job.job_class.name}@#{self.job.computer}",
+                             reply_to: mail_list(cfg.smtp[:reply_to]))
+                else
+                    Mail.new
+                end
             end
 
 
@@ -158,13 +162,13 @@ class BatchKit
             def send_failure_email(job_run, ex)
                 if job_run.parent.nil?
                     msg = create_failure_email()
-                    if recipients
-                        # Override default recipients
-                        msg.to = recipients
-                        msg.cc = nil
+                    if config.smtp?
+                        msg.deliver!
+                        log.detail "Failure email sent to #{recipient_count(msg)} recipients"
+                    else
+                        log.warn "Cannot send failure email - no SMTP settings are defined in config"
+                        save_msg_to_file(msg, "#{config.log_dir}/#{File.nameonly(self.job.file)}.html")
                     end
-                    msg.deliver!
-                    log.detail "Failure email sent to #{recipient_count(msg)} recipients"
                 end
             end
 

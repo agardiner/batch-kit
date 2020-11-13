@@ -44,7 +44,7 @@ class BatchKit
 
             def create_style_tag(opts = {})
                 font = opts.fetch(:font, 'Calibri')
-                style_tag = <<-EOS.gsub{/^ {20}/, ''}
+                style_tag = <<-EOS.gsub(/^ {20}/, '')
                     <style>
                         @font-face {font-family: #{font};}
 
