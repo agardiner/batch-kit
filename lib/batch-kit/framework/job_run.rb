@@ -125,6 +125,15 @@ class BatchKit
             end
 
 
+            def post_execute(process_obj, success)
+                super
+                if self.parent.nil? && ((success && self.exit_code != 0) ||
+                                        (!success && self.exit_code != 1))
+                    exit(self.exit_code)
+                end
+            end
+
+
             # @return [Boolean] True if the job run should be recorded via any
             #   persistence layer.
             def persist?
