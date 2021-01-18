@@ -37,12 +37,6 @@ class BatchKit
         # arguments from the command-line, and then executes the job.
         def self.run(args = ARGV)
             if @@enabled
-                if args.delete('--do-not-track')
-                    self.job_definition.do_not_track = true
-                end
-                if args.delete('--no-checkpoints')
-                    self.job_definition.no_checkpoints = true
-                end
                 if !@shell && args.include?('--shell')
                     args.delete_if{ |arg| arg == '--shell' }
                     shell(args)
@@ -72,6 +66,12 @@ class BatchKit
         # @param args [Array<String>] an array containin§g the command-line to
         #   be processed by the job.
         def self.run_once(args, show_usage_on_error = true)
+            if args.delete('--do-not-track')
+                self.job_definition.do_not_track = true
+            end
+            if args.delete('--no-checkpoints')
+                self.job_definition.no_checkpoints = true
+            end
             job = self.new
             job.parse_arguments(args, show_usage_on_error)
             unless self.job.method_name
