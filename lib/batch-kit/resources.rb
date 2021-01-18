@@ -202,7 +202,7 @@ class BatchKit
             end
             if (defined?(BatchKit::Job) && BatchKit::Job == cls) ||
                 (defined?(BatchKit::ActsAsJob) && cls.include?(BatchKit::ActsAsJob))
-                Events.subscribe(BatchKit::Job::Run, 'post-execute') do |run, job_obj, ok|
+                Events.subscribe(cls, 'job_run.post-execute') do |job_obj, run, ok|
                     job_obj.cleanup_resources
                 end
             end
