@@ -55,7 +55,8 @@ class BatchKit
                         log.config "Log level set to #{cfg[:log_level].upcase}"
                     end
                     if run.parent.nil? && cfg[:log_dir]
-                        cfg.log_file = "#{cfg[:log_dir]}/#{File.nameonly(run.definition.file)}#{
+                        log_dir = cfg.expand_placeholders(cfg.log_dir)
+                        cfg.log_file = "#{log_dir}/#{File.nameonly(run.definition.file)}#{
                             run.instance ? '_' + run.instance.gsub(/[:\/\\ ]/, '_').gsub(/__+/, '_') : ''}.log"
                         FileUtils.archive(cfg.log_file)
                         log.config "Logging output to: #{cfg.log_file}"
