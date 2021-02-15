@@ -3,6 +3,7 @@ require 'color-console'
 require 'readline'
 require 'csv'
 require_relative 'loggable'
+require_relative 'configurable'
 
 
 class BatchKit
@@ -37,7 +38,11 @@ class BatchKit
 
                 def run(args)
                     if @processor
-                        @processor.call(self.get, args)
+                        if @class
+                            @processor.call(self.get, args)
+                        else
+                            @processor.call(args)
+                        end
                     else
                         self.get.run_once(args, false)
                     end
@@ -72,7 +77,7 @@ class BatchKit
 
 
                 # Register a new command, invoked using +name+.
-                def command(name, cls, &blk)
+                def command(name, cls=nil, &blk)
                     registered_commands[name] = Command.new(name, cls, @desc, @arguments, &blk)
                     @desc = nil
                     @arguments = nil
