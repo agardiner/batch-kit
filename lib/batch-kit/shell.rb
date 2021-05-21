@@ -111,9 +111,10 @@ class BatchKit
 
         def execute
             if ARGV.size > 0
-                cmd = ARGV.shift.intern
+                argv = ARGV.clone
+                cmd = argv.shift.intern
                 if cmd_info = @commands[cmd]
-                    if cmd_info.arguments && ARGV.size < cmd_info.arguments.size
+                    if cmd_info.arguments && argv.size < cmd_info.arguments.size
                         display_usage(cmd_info)
                         exit 99
                     else
@@ -153,6 +154,8 @@ class BatchKit
 
         def run_command(args)
             case args.first
+            whe /^history$/i
+                puts Readline::HISTORY.to_a.inspect
             when /^help$/i
                 if args[1] && cmd_info = @commands[args[1].intern]
                     display_help(cmd_info)
