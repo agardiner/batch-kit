@@ -241,12 +241,19 @@ class BatchKit
         # @option options [Boolean] :raise_on_unknown_var Whether to raise an
         #   exception if an unrecognised placeholder variable is encountered in
         #   +hsh+.
+        # @option options [Boolean] :merge_hashes Whether to merge (true) or
+        #   replace (false) existing nested hash content when an existing key is
+        #   encountered in +hsh+.
         def merge!(hsh, options = {})
             if hsh && !hsh.is_a?(Hash)
                 raise ArgumentError, "Only Hash objects can be merged into Config (got #{hsh.class.name})"
             end
             hsh && hsh.each do |key, val|
-                self[key] = convert_val(val, options[:raise_on_unknown_var])
+                if self.has_key?(key) && self[key].is_a?(Hash) && val.is_a?(Hash) && options[:merge_hashes]
+                    self[key].merge!(val, options)
+                else
+                    self[key] = convert_val(val, options[:raise_on_unknown_var])
+                end
             end
             if hsh.is_a?(Config)
                 @decryption_key = hsh.instance_variable_get(:@decryption_key) unless @decryption_key
