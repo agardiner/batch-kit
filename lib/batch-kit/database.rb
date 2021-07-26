@@ -19,6 +19,12 @@ class BatchKit
         end
 
 
+        # @return the database connection
+        def connection
+            @schema.connection
+        end
+
+
         # Log database messages under the batch-kit.database namespace.
         def log
             @log ||= BatchKit::LogManager.logger('batch-kit.database')
