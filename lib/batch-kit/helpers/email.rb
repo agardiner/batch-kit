@@ -117,25 +117,15 @@ class BatchKit
                         jr.task_runs.select{ |tr| tr.exception != nil }.each do |tr|
                             ex = tr.exception
                             body << "<h2>Task Failure</h2>"
-                            body << "<p>Job <b>#{jr.label}</b> has <b class='red'>failed</b> in task <b>#{tr.label}</b> with #{
-                                ex.class.name}</b>:</p>"
-                            body << "<div><span class='error'>#{ex.message}</span></div>"
-                            body << "<br>"
-                            body << "<h3>Backtrace</h3>"
-                            body << "<code>"
-                            body << ex.backtrace.join("<br>\n")
-                            body << "</code>"
+                            body << "<p>Job <b>#{jr.label}</b> has <b class='red'>failed</b> in task <b>#{
+                                tr.label}</b> with #{ex.class.name}</b>:</p>"
+                            add_backtrace_to_body(body, ex)
                         end
                         if ex != jr.exception
                             body << "<h2>Job Failure</h2>"
                             body << "<p>Job <b>#{jr.label}</b> has <b class='red'>failed</b> with <b>#{
                                     jr.exception.class.name}</b>:</p>"
-                            body << "<div><span class='error'>#{jr.exception.message}</span></div>"
-                            body << "<br>"
-                            body << "<h3>Backtrace</h3>"
-                            body << "<code>"
-                            body << jr.exception.backtrace.join("<br>\n")
-                            body << "</code>"
+                            add_backtrace_to_body(body, jr.exception)
                         end
                     end
                     
@@ -149,6 +139,20 @@ class BatchKit
                 msg.subject = "#{self.subject_prefix} #{self.job.name} job on #{self.job.computer} Failed!".strip
                 msg.add_file(self.log.log_file) if self.log.log_file
                 msg
+            end
+
+
+            # Format a backtrace and add it to an email body
+            #
+            # @param body [Array<String>] The current body being built up
+            # @param ex [Exception] The exception to be added to the body
+            def add_backtrace_to_body(body, ex)
+                body << "<div><span class='error'>#{ex.message}</span></div>"
+                body << "<br>"
+                body << "<h3>Backtrace</h3>"
+                body << "<code>"
+                body << ex.backtrace.join("<br>\n")
+                body << "</code>"
             end
 
 
