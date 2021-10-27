@@ -388,7 +388,7 @@ class BatchKit
             keys = key_path.split(path_sep)
             lvl_cfg = self
             keys.each do |key|
-                if lvl_cfg.has_key?(key)
+                if lvl_cfg && lvl_cfg.has_key?(key)
                     lvl_cfg = lvl_cfg[key]
                 else
                     return default

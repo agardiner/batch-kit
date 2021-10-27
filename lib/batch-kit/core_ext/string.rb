@@ -22,7 +22,7 @@ class BatchKit
         # commas are present, this is converted to an alternation regex.
         # If other punctuation is used, the pattern is assumed to be a regular
         # expression, and is converted as-is.
-        def pattern_to_regex(regexp_options=nil)
+        def pattern_to_regexp(regexp_options=nil)
             if self =~ /[\^$!\\+()]/
                 Regexp.new("^#{self}$", regexp_options)
             else

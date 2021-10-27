@@ -378,7 +378,7 @@ class BatchKit
                         when String, Numeric, TrueClass, FalseClass then val
                         else val.inspect
                         end
-                    JobRunArg.new(job_run.job_run_id, name, v).save
+                    JobRunArg.new(job_run.job_run_id, name, v.to_s[0...255]).save
                 end
             end
 
