@@ -459,9 +459,12 @@ class BatchKit
 
             Events.subscribe(nil, 'task_run.pre-execute') do |job_obj, task_run, *args|
                 if !task_run.job_run.definition.no_checkpoints && task_run.checkpoint_window
-                    last_completed = TaskRun.where(task_id: task_run.task_id,
-                                                   task_instance: task_run.instance,
-                                                   task_status: 'COMPLETED').max(:task_end_time)
+                    last_completed = TaskRun.join(JobRun, :job_run => :job_run).
+                        where(task_id: task_run.task_id,
+                              job_instance: task_run.job_run.instance,
+                              task_instance: task_run.instance,
+                              task_status: 'COMPLETED').
+                        max(:task_end_time)
                     if last_completed && (Time.now - last_completed) <= task_run.checkpoint_window
                         Events::Token.new(:skip_run, nil, 'a run has already completed successfully within the checkpoint window')
                     end
