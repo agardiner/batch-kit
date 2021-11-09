@@ -131,16 +131,14 @@ class BatchKit
                 while true do
                     begin
                         input = Readline.readline(prompt, true).strip
-                        args = CSV.parse_line(input, col_sep: ' ')
-                        next if args.nil? || args.size == 0
-                        if args.first =~ /^(exit|quit)$/i
-                            break
-                        end
+                        break if args.first =~ /^(exit|quit)$/i
                         Readline::HISTORY.push(input) if Readline::HISTORY.size == 0 || input != Readline::HISTORY[-1]
                         if input =~ /^!\s*(.+)/
                             out = `#{$1}`
                             puts out
                         else
+                            args = CSV.parse_line(input, col_sep: ' ')
+                            next if args.nil? || args.size == 0
                             run_command(args)
                         end
                     rescue => ex
@@ -213,7 +211,7 @@ class BatchKit
             if @history_path
                 File.open(@history_path, 'w') do |f|
                     history = Readline::HISTORY.to_a
-                    history = history.slice[-100..-1] if history.size > 100
+                    history = history.slice(-100..-1) if history.size > 100
                     history.each{ |line| f.puts line }
                 end
             end
