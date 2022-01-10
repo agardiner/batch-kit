@@ -40,16 +40,19 @@ class BatchKit
             def publish(event)
                 if @job_run_id && @errors < @max_errors &&
                     event.level.intValue >= Java::JavaUtilLogging::Level::FINE.intValue
-                    if @log_line.get() < @max_lines || event.level >= Java::JavaUtilLogging::Level::WARNING
+                    if @log_line.get() < @max_lines || event.level.intValue >= Java::JavaUtilLogging::Level::WARNING.intValue
                         msg = event.getMessage[0...1000].strip
                         return unless msg.length > 0
                         log_name = (event.getLoggerName[-40..-1] || event.getLoggerName)
                         level = event.level
                         begin
-                            JobRunLog.new(job_run: @job_run_id, log_line: @log_line.incrementAndGet(),
+                            JobRunLog.new(job_run_id: @job_run_id,
+                                          log_line: @log_line.incrementAndGet(),
                                           thread_id: event.getThreadID,
-                                          log_time: Time.at(event.getMillis / 1000.0), log_name: log_name,
-                                          log_level: level, log_message: msg).save
+                                          log_time: Time.at(event.getMillis / 1000.0),
+                                          log_name: log_name,
+                                          log_level: level,
+                                          log_message: msg).save
                         rescue
                             # Disable logging if an exception occurs
                             @errors += 1

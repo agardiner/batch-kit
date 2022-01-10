@@ -36,9 +36,12 @@ class BatchKit
                         thread_id = Log4r::MDC.get(:thread_id)
                         level = Log4r::LNAMES[event.level]
                         begin
-                            JobRunLog.new(job_run: @job_run_id, log_line: @log_line,
-                                          log_time: Time.now, log_name: log_name,
-                                          log_level: level, thread_id: thread_id && thread_id[0..8],
+                            JobRunLog.new(job_run_id: @job_run_id,
+                                          log_line: @log_line,
+                                          log_time: Time.now,
+                                          log_name: log_name,
+                                          log_level: level,
+                                          thread_id: thread_id && thread_id[0..8],
                                           log_message: msg).save
                         rescue
                             # Disable logging if an exception occurs
