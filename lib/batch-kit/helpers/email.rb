@@ -59,16 +59,16 @@ class BatchKit
             #   add to the email body.
             # @yield [Array<String>] an Array of strings to which body content
             #   can be added.
-            def create_html_email(cfg = config, body_text = nil, &blk)
+            def create_html_email(cfg = config, body_text = nil, html = nil, &blk)
                 if cfg.is_a?(String) || cfg.is_a?(Array)
                     body_text = cfg
                     cfg = nil
                 end
                 msg = create_email(cfg)
-                body = create_html_document(body_text, &blk)
+                body = html ? html : create_html_document(body_text, &blk).join("\n")
                 msg.html_part = Mail::Part.new do |part|
                   part.content_type('text/html; charset=UTF-8')
-                  part.body(body.join("\n"))
+                  part.body(body)
                 end
                 msg
             end
