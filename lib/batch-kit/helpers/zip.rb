@@ -15,11 +15,36 @@ class BatchKit
             #   the zip.
             def create_zip(zip_file, *files)
                 FileUtils.rm_f(zip_file)
-                ::Zip::File.open(zip_file, ::Zip::File::CREATE) do |zip|
-                    files.flatten.each do |file|
-                        zip.add(File.basename(file), file)
+                if RUBY_PLATFORM == 'java' && !block_given?
+                    # Use Java's zip stream capabilities to handle larger files
+                    fos = java.io.FileOutputStream.new(zip_file)
+                    zos = java.util.zip.ZipOutputStream.new(fos)
+                    begin
+                        buffer = Java::byte[8196].new
+                        files.flatten.each do |file|
+                            f = java.io.File.new(file)
+                            ze = java.util.zip.ZipEntry.new(f.getName())
+                            fis = java.io.FileInputStream.new(f)
+                            begin
+                                zos.putNextEntry(ze)
+                                while (len = fis.read(buffer)) >= 0 do
+                                    zos.write(buffer, 0, len)
+                                end
+                            ensure
+                                fis.close()
+                            end
+                        end
+                    ensure
+                        zos.close()
+                        fos.close()
                     end
-                    yield zip if block_given?
+                else
+                    ::Zip::File.open(zip_file, ::Zip::File::CREATE) do |zip|
+                        files.flatten.each do |file|
+                            zip.add(File.basename(file), file)
+                        end
+                        yield zip if block_given?
+                    end
                 end
             end
 
