@@ -171,7 +171,7 @@ class BatchKit
                         log.detail "Failure email sent to #{recipient_count(msg)} recipients"
                     else
                         log.warn "Cannot send failure email - no SMTP settings are defined in config"
-                        save_msg_to_file(msg, config.log_file.sub(/\.log$/, '.html')
+                        save_msg_to_file(msg, config.log_file.sub(/\.log$/, '.html'))
                     end
                 end
             end
