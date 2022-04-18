@@ -38,7 +38,6 @@ class BatchKit
                 Sequel.default_timezone = :utc
                 @conn = Sequel.connect(*args)
                 @conn.loggers << @log
-                @conn.autosequence = true
 
                 create_tables unless deployed?
             end
@@ -46,7 +45,7 @@ class BatchKit
 
             # @return true if the batch-kit database tables have been deployed.
             def deployed?
-                @conn.table_exists?(:batchkit_md5)
+                @conn.table_exists?(:batchkit_lock)
             end
 
 
@@ -68,7 +67,7 @@ class BatchKit
             def create_tables
                 # MD5 table, used to hold hashes of objects to detect version changes
                 @conn.create_table?(:batchkit_md5) do
-                    primary_key :md5_id
+                    primary_key :md5_id, sequence_name: 'SEQ_BATCHKIT_MD5_ID', trigger_name: 'BI_BATCHKIT_MD5_ID'
                     String :object_type, size: 30, null: false
                     String :object_name, size: 255, null: false
                     Fixnum :object_version, null: false
@@ -79,7 +78,7 @@ class BatchKit
 
                 # Job table, holds details of job definitions
                 @conn.create_table?(:batchkit_job) do
-                    primary_key :job_id
+                    primary_key :job_id, sequence_name: 'SEQ_BATCHKIT_JOB_ID', trigger_name: 'BI_BATCHKIT_JOB_ID'
                     String :job_name, size: 80, null: false
                     String :job_class, size: 80, null: false
                     String :job_method, size: 80, null: false
@@ -104,7 +103,7 @@ class BatchKit
 
                 # Task table, holds details of task definitions
                 @conn.create_table?(:batchkit_task) do
-                    primary_key :task_id
+                    primary_key :task_id, sequence_name: 'SEQ_BATCHKIT_TASK_ID', trigger_name: 'BI_BATCHKIT_TASK_ID'
                     foreign_key :job_id, :batchkit_job, null: false
                     Fixnum :job_version, null: false
                     String :task_name, size: 80, null: false
@@ -127,8 +126,8 @@ class BatchKit
 
                 # Job run table, holds details of a single execution of a job
                 @conn.create_table?(:batchkit_job_run) do
-                    primary_key :job_run
-                    foreign_key :parent_job_run, :batchkit_job_run, null: true
+                    primary_key :job_run_id, sequence_name: 'SEQ_BATCHKIT_JOB_RUN_ID', trigger_name: 'BI_BATCHKIT_JOB_RUN_ID'
+                    foreign_key :parent_job_run_id, :batchkit_job_run, null: true
                     foreign_key :job_id, :batchkit_job, null: false
                     String :job_instance, size: 80, null: true
                     Fixnum :job_version, null: false
@@ -144,29 +143,29 @@ class BatchKit
 
                 # Job run arguments table, holds details of the arguments used on a job
                 @conn.create_table?(:batchkit_job_run_arg) do
-                    foreign_key :job_run, :batchkit_job_run
+                    foreign_key :job_run_id, :batchkit_job_run
                     String :job_arg_name, size: 50, null: false
                     String :job_arg_value, size: 255, null: true
-                    primary_key [:job_run, :job_arg_name]
+                    primary_key [:job_run_id, :job_arg_name]
                 end
 
                 # Job run log table, holds log records for a job
                 @conn.create_table?(:batchkit_job_run_log) do
-                    foreign_key :job_run, :batchkit_job_run
+                    foreign_key :job_run_id, :batchkit_job_run
                     Fixnum :log_line, null: false
                     DateTime :log_time, null: false
                     String :log_name, size: 40, null: false
                     String :log_level, size: 8, null: false
                     String :thread_id, size: 8, null: true
                     String :log_message, size: 1000, null: false
-                    primary_key [:job_run, :log_line]
+                    primary_key [:job_run_id, :log_line]
                 end
 
                 # Job failure table, holds exception details for job failures
                 @conn.create_table?(:batchkit_job_run_failure) do
                     # We don't use an FK here, because we want to be able to retain
                     # failure details longer than we retain job runs
-                    Fixnum :job_run, null: false
+                    Fixnum :job_run_id, null: false
                     foreign_key :job_id, :batchkit_job, null: false
                     Fixnum :job_version, null: false
                     DateTime :job_failed_at, null: false
@@ -176,10 +175,10 @@ class BatchKit
 
                 # Task run table, holds details of a single execution of a task
                 @conn.create_table?(:batchkit_task_run) do
-                    primary_key :task_run
-                    foreign_key :parent_task_run, :batchkit_task_run, null: true
+                    primary_key :task_run_id, sequence_name: 'SEQ_BATCHKIT_TASK_RUN_ID', trigger_name: 'BI_BATCHKIT_TASK_RUN_ID'
+                    foreign_key :parent_task_run_id, :batchkit_task_run, null: true
                     foreign_key :task_id, :batchkit_task, null: false
-                    foreign_key :job_run, :batchkit_job_run, null: false
+                    foreign_key :job_run_id, :batchkit_job_run, null: false
                     String :task_instance, size: 80, null: true
                     DateTime :task_start_time, null: false
                     DateTime :task_end_time, null: true
@@ -190,7 +189,7 @@ class BatchKit
                 # Lock table, holds details of the current locks
                 @conn.create_table?(:batchkit_lock) do
                     String :lock_name, type: String, size: 50, unique_key: true
-                    foreign_key :job_run, :batchkit_job_run
+                    foreign_key :job_run_id, :batchkit_job_run
                     DateTime :lock_created_at, null: false
                     DateTime :lock_expires_at, null: false
                 end
