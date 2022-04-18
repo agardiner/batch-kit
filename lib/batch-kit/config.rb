@@ -108,6 +108,9 @@ class BatchKit
             chain = properties.is_a?(Hash) ? [properties] : properties.reverse
             str.gsub(/(?:[$%])\{([a-zA-Z0-9_]+)\}/) do
                 case
+                when src = chain.find{ |cfg| cfg.is_a?(BatchKit::Config) &&
+                                             cfg.value_at($1, nil) }
+                    src = value_at($1)
                 when src = chain.find{ |props| props.has_key?($1) ||
                                                props.has_key?($1.intern) ||
                                                props.has_key?($1.downcase.intern) }
