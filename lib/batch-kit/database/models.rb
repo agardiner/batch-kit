@@ -706,6 +706,54 @@ class BatchKit
 
         end
 
+
+        class Alert < Sequel::Model(:batchkit_alert)
+
+            many_to_one :job_run
+
+            dataset_module do
+
+                def between(start_time, end_time)
+                    where("ALERT_CREATED_AT >= TIMESTAMP '#{start_time.strftime('%Y-%m-%d %H:%M:%S')
+                          }' AND ALERT_CREATED_AT <= TIMESTAMP '#{end_time.strftime('%Y-%m-%d %H:%M%S')}'")
+                end
+
+            end
+
+
+            def self.info(job_run_id, alert_type, message)
+                self.new(job_run_id: job_run_id, alert_level: 'INFO',
+                         alert_tye: alert_type, alert_message: message,
+                         alert_created_at: Time.now).save
+            end
+
+
+            def self.warn(job_run_id, alert_type, message)
+                self.new(job_run_id: job_run_id, alert_level: 'WARN',
+                         alert_tye: alert_type, alert_message: message,
+                         alert_created_at: Time.now).save
+            end
+
+            Events.subscribe(nil, 'job_run.alert') do |job_run, alert_lvl, alert_type, alert_msg|
+                Alert.new(job_run_id: job_run.job_run_id, alert_level: alert_lvl,
+                         alert_tye: alert_type, alert_message: alert_msg,
+                         alert_created_at: Time.now).save
+            end
+            Events.subscribe(nil, 'job_run.timeout') do |job_run|
+                Alert.warn(job_run.job_run_id, 'Job Run Timeout',
+                           "Job '#{job_run.name}' timed out and has been aborted")
+            end
+            Events.subscribe(Runnable, 'lock.expire') do |job_run, lock_name, holder_job_run_id|
+                Alert.warn(holder_job_run_id, 'Job Run Timeout',
+                           "Lock '#{lock_name}' expired before it was released")
+            end
+            Events.subscribe(Runnable, 'lock.takeover') do |job_run, lock_name, old_holder|
+                Alert.warn(job_run.job_run_id, 'Lock Takeover',
+                           "Lock #{lock_name} has expired and been taken over from #{old_holder}")
+            end
+
+        end
+
     end
 
 end
