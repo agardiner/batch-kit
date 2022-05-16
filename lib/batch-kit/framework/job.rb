@@ -63,8 +63,9 @@ class BatchKit
 
         # Instantiates and executes a job, using the supplied arguments +args+.
         #
-        # @param args [Array<String>] an array containin§g the command-line to
-        #   be processed by the job.
+        # @param args [Array<String>, Hash<String, String>] an array containing
+        #   the command-line to be processed by the job, or a hash of argument
+        #   keys and values.
         def self.run_once(args, show_usage_on_error = true)
             if args.delete('--do-not-track')
                 self.job_definition.do_not_track = true

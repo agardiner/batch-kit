@@ -188,7 +188,7 @@ class BatchKit
 
                 # Lock table, holds details of the current locks
                 @conn.create_table?(:batchkit_lock) do
-                    String :lock_name, type: String, size: 50, unique_key: true
+                    String :lock_name, type: String, size: 50, unique: true
                     foreign_key :job_run_id, :batchkit_job_run
                     DateTime :lock_created_at, null: false
                     DateTime :lock_expires_at, null: false

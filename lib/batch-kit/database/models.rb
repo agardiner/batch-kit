@@ -636,28 +636,41 @@ class BatchKit
             def self.lock?(runnable, lock_name, lock_timeout, lock_holder = nil)
                 job_run = runnable.is_a?(BatchKit::Job::Run) ? runnable : runnable.job_run
                 lock_expires_at = nil
-                self.dataset.db.transaction do
-                    lock_rec = self.where(lock_name: lock_name).first
-                    if lock_rec
-                        if lock_rec.lock_expires_at < Time.now
-                            self.where(lock_name: lock_name).delete
-                            lock_rec = nil
-                        else
+                attempts = 0
+                begin
+                    attempts += 1
+                    self.dataset.db.transaction do
+                        lock_rec = self.where(lock_name: lock_name).first
+                        if lock_rec
+                            lock_expires_at = nil   # Ensure lock_expires_at not set from failed insert
                             lock_job = JobRun.join(Job, :job_id => :job_id).where(job_run_id: lock_rec.job_run_id).first
-                            if lock_holder
-                                lock_holder[:lock_expires_at] = lock_rec.lock_expires_at.getlocal
-                                lock_holder[:lock_holder] = "job '#{lock_job[:job_name]}' (job run #{lock_rec.job_run_id})"
+                            holder = "job '#{lock_job[:job_name]}' (job run #{lock_rec.job_run_id})"
+                            if lock_rec.lock_expires_at < Time.now
+                                Events.publish(job_run, 'lock.expire', lock_name, lock_rec.job_run_id)
+                                Events.publish(job_run, 'lock.takeover', lock_name, holder)
+                                self.where(lock_name: lock_name).delete
+                                lock_rec = nil
+                            else
+                                if lock_holder
+                                    lock_holder[:lock_expires_at] = lock_rec.lock_expires_at.getlocal
+                                    lock_holder[:lock_holder] = holder
+                                end
+                            end
+                        else
+                            lock_expires_at = Time.now + lock_timeout
+                            if job_run.persist?
+                                self.new(lock_name: lock_name, job_run_id: job_run.job_run_id,
+                                         lock_created_at: Time.now,
+                                         lock_expires_at: lock_expires_at).save
                             end
                         end
                     end
-                    if lock_rec.nil?
-                        lock_expires_at = Time.now + lock_timeout
-                        if job_run.persist?
-                            self.new(lock_name: lock_name, job_run_id: job_run.job_run_id,
-                                     lock_created_at: Time.now,
-                                     lock_expires_at: lock_expires_at).save
-                        end
+                rescue
+                    if attempts < 3
+                        sleep(rand())
+                        retry
                     end
+                    raise
                 end
                 lock_expires_at
             end
