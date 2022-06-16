@@ -3,12 +3,34 @@ require 'color-console'
 require 'readline'
 require 'csv'
 require_relative 'loggable'
-require_relative 'configurable'
 
 
 class BatchKit
 
     class Shell
+
+        class Command
+
+            attr_reader :name, :description, :arguments
+
+            def initialize(name, class_or_name, desc, args)
+                @name = name
+                @description = desc
+                @class_or_name = class_or_name
+                @arguments = args
+            end
+
+
+            def get
+                if @class.is_a?(String) || @class_or_name.is_a?(Symbol)
+                    Object.const_get(@class_or_name)
+                else
+                    @class_or_name
+                end
+            end
+
+        end
+
 
         # Define a DSL for registering commands and shortcuts that can be run
         # from a shell. Commands must be BatchKit::Job instances that can be
@@ -16,53 +38,30 @@ class BatchKit
         # that can take a command-line and return an alternate command line.
         # Shortcuts are intended to be used to simplify common usage patterns
         # of utilities, by filling in some of the boiler-plate.
-        module Commands
-
-            class Command
-
-                attr_reader :name, :description, :arguments
-
-                def initialize(name, class_name, desc, args, &blk)
-                    @name = name
-                    @description = desc
-                    @class = class_name
-                    @arguments = args
-                    @processor = blk
-                end
-
-
-                def get
-                    Object.const_get(@class)
-                end
-
-
-                def run(args)
-                    if @processor
-                        if @class
-                            @processor.call(self.get, args)
-                        else
-                            @processor.call(args)
-                        end
-                    else
-                        self.get.run_once(args, false)
-                    end
-                end
-
-            end
-            
+        module DSL
 
             module ClassMethods
 
                 include BatchKit::Loggable
 
 
-                def history(file_name)
-                    @history_path = File.join(Dir.home, file_name)
+                def history(file_name=nil)
+                    if file_name
+                        @history_path = File.join(Dir.home, file_name)
+                    else
+                        @history_path
+                    end
                 end
 
 
                 def registered_commands
                     @registered_commands ||= {}
+                end
+
+
+                def import_commands(mod)
+                    include mod
+                    registered_commands.merge!(mod.registered_commands)
                 end
 
 
@@ -78,16 +77,23 @@ class BatchKit
 
                 # Register a new command, invoked using +name+.
                 def command(name, cls=nil, &blk)
-                    registered_commands[name] = Command.new(name, cls, @desc, @arguments, &blk)
+                    registered_commands[name] = Command.new(name, cls, @desc, @arguments)
                     @desc = nil
                     @arguments = nil
+                    if blk
+                        define_method(name, &blk)
+                    else
+                        define_method(name) do |cls, args|
+                            cls.run_once(args, false)
+                        end
+                    end
                 end
 
 
                 # Invoke a new shell instance supporting the defined commands
                 # and shortcuts.
                 def run
-                    BatchKit::Shell.new(registered_commands, @history_path).execute
+                    self.new.execute
                 end
 
             end
@@ -100,12 +106,13 @@ class BatchKit
         end
 
 
+        include BatchKit::Shell::DSL
         include BatchKit::Loggable
 
 
-        def initialize(commands, history_path)
-            @commands = commands
-            @history_path = history_path
+        def initialize
+            @commands = self.class.registered_commands
+            @history_path = self.class.history
         end
 
 
@@ -118,7 +125,7 @@ class BatchKit
                         display_usage(cmd_info)
                         exit 99
                     else
-                        cmd_info.run(ARGV)
+                        run_command(ARGV)
                     end
                 else
                     STDERR.puts "ERROR: Unknown command '#{cmd}'"
@@ -163,6 +170,9 @@ class BatchKit
                         puts "  #{key.to_s.ljust(25)} #{@commands[key].description}"
                     end
                 end
+            when /^irb$/
+                require 'irb'
+                IRB.start
             else
                 cmd = args.shift.intern
                 if cmd_info = @commands[cmd]
@@ -170,7 +180,11 @@ class BatchKit
                         display_usage(cmd_info)
                     else
                         begin
-                            cmd_info.run(args)
+                            if clazz = cmd_info.get
+                                send(cmd, clazz, args)
+                            else
+                                send(cmd, args)
+                            end
                         rescue SystemExit => e
                             puts "#{cmd} exited with status code #{e.status}"
                         end
