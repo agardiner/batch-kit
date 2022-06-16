@@ -355,6 +355,9 @@ class BatchKit
                 delete(key)
                 @lookup_keys[std_key] = key
             end
+            if val.is_a?(Config)
+                val.decryption_key = @decryption_key
+            end
             super key, val
         end
 
