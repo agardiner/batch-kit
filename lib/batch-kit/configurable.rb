@@ -27,12 +27,34 @@ class BatchKit
                 config.decryption_key = options.delete(:decryption_key) if options[:decryption_key]
                 config.merge!(options)
                 cfg_files.each do |cfg_file|
-                    config.load(cfg_file, options)
+                    config.load(find_config(cfg_file), options)
                 end
                 if defined?(BatchKit::Events)
                     Events.publish(self, 'config.post-load', config)
                 end
                 config
+            end
+
+
+            def config_paths
+                @config_paths ||= []
+            end
+
+
+            def find_config(cfg_file)
+                if Pathname.new(cfg_file).absolute? || File.exists?(cfg_file)
+                    cfg_file
+                elsif config_dir = config_paths.find{ |p| File.exist?(File.join(p, cfg_file)) }
+                    File.join(config_dir, cfg_file)
+                else
+                    cfg_file
+                end
+            end
+
+
+            def load_config_file(cfg_file)
+                cfg_path = find_config(cfg_file)
+                BatchKit::Config.load(cfg_path)
             end
 
 
@@ -50,6 +72,11 @@ class BatchKit
         # {ClassMethods}.
         def self.included(base)
             base.extend(ClassMethods)
+        end
+
+
+        def load_config_file(cfg_file)
+            self.class.load_config_file(cfg_file)
         end
 
 
