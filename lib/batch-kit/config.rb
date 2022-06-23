@@ -251,15 +251,15 @@ class BatchKit
             if hsh && !hsh.is_a?(Hash)
                 raise ArgumentError, "Only Hash objects can be merged into Config (got #{hsh.class.name})"
             end
+            if hsh.is_a?(Config)
+                @decryption_key = hsh.instance_variable_get(:@decryption_key) unless @decryption_key
+            end
             hsh && hsh.each do |key, val|
                 if self.has_key?(key) && self[key].is_a?(Hash) && val.is_a?(Hash) && options[:merge_hashes]
                     self[key].merge!(val, options)
                 else
                     self[key] = convert_val(val, options[:raise_on_unknown_var])
                 end
-            end
-            if hsh.is_a?(Config)
-                @decryption_key = hsh.instance_variable_get(:@decryption_key) unless @decryption_key
             end
             self
         end
@@ -407,7 +407,6 @@ class BatchKit
         # Override #clone to also clone contents of @lookup_keys.
         def clone
             copy = super
-            copy.instance_variable_set(:@lookup_keys, @lookup_keys.clone)
             copy.each{ |k, v| copy[k] = v.clone rescue v }
             copy
         end
@@ -416,7 +415,6 @@ class BatchKit
         # Override #dup to also clone contents of @lookup_keys.
         def dup
             copy = super
-            copy.instance_variable_set(:@lookup_keys, @lookup_keys.dup)
             copy.each{ |k, v| copy[k] = v.dup rescue v }
             copy
         end
